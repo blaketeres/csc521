@@ -1,0 +1,52 @@
+<Program> -> <Statement> | <Statement> <Program>
+
+<Statement> -> <FunctionDeclaration> | <Assignment> | <Print>
+
+<FunctionDeclaration> -> FUNCTION <Name> LPAREN <NameList> RPAREN LBRACE <FunctionBody> RBRACE
+
+<FunctionBody> -> <Return> | <Program> <Return>
+
+<Return> -> RETURN <ParameterList>
+
+//support for naming all values returned from functions
+<Assignment> -> <SingleAssignment> | <MultipleAssignment>
+
+<SingleAssignment> -> VAR <Name> ASSIGN <Expression>
+
+
+//size of NameList has to match the number of return values from the FunctionCall
+<MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
+
+<Print> -> PRINT <Expression>
+
+
+
+<NameList> -> <Name> | <Name> COMMA <NameList>
+
+<ParameterList> -> <Parameter> | <Parameter> COMMA <ParameterList>
+
+<Parameter> -> <Name> | <Expression>
+
+
+
+<Expression> -> <Term> | <Expression> ADD <Term> | <Expression> SUB <Term>
+
+<Term> -> <Factor> | <Term> MULT <Factor> | <Term> DIV <Factor>
+
+<Factor> -> <SubExpression> | <SubExpression> EXP <Factor> | <Value> EXP <Factor> | <Value> | <FunctionCall>
+
+<FunctionCall> -> <Name> LPAREN <ParameterList> RPAREN | <Name> LPAREN <ParameterList> RPAREN COLON <Number>
+
+<SubExpression> -> LPAREN <Expression> RPAREN
+
+<Value> -> <Name> | <Number>
+
+
+
+
+
+<Name> = IDENT
+
+<Number> = NUMBER
+
+//removed! <Index> -> INDEX
