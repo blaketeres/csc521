@@ -1,21 +1,20 @@
 import sys
 import re
-import json
 
 def ReadInput():
     # get input from quirk file
     lines = sys.stdin.readlines()
 
     # loop through lines in quirk file
-    for i, line in enumerate(lines):
+    for line in lines:
 
         # convert input from line to standard python string
         x = str(line)
 
-        # filter out obvious errors by checking for illegal characters not defined in the grammar
+        # filter out obvious errors by checking for illegal characters not defined in the tokens such as "%, $, &, etc."
         syntaxError = re.match("^((?!var |function |return |print |=|\+|\-|\*|/|\^|\(|\)|\{|\}|,|:|[+-]?\d+(?:\.\d+)?|[a-zA-Z]+[a-zA-Z0-9_]*).)*$", x)
         if syntaxError:
-            print("Syntax Error")
+            print("Error")
             exit()
 
         # find keywords in grammar
