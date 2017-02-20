@@ -3,12 +3,27 @@ import re
 import json
 
 def ReadInput():
+    # get input from quirk file
     lines = sys.stdin.readlines()
-    for line in lines:
+
+    # loop through lines in quirk file
+    for i, line in enumerate(lines):
+
+        # convert input from line to standard python string
         x = str(line)
+
+        # filter out obvious errors by checking for illegal characters not defined in the grammar
+        syntaxError = re.match("^((?!var |function |return |print |=|\+|\-|\*|/|\^|\(|\)|\{|\}|,|:|[+-]?\d+(?:\.\d+)?|[a-zA-Z]+[a-zA-Z0-9_]*).)*$", x)
+        if syntaxError:
+            print("Syntax Error")
+            exit()
+
+        # find keywords in grammar
         y = re.findall("var |function |return |print |=|\+|\-|\*|/|\^|\(|\)|\{|\}|,|:|[+-]?\d+(?:\.\d+)?|[a-zA-Z]+[a-zA-Z0-9_]*", x)
+
+        # iterate through and find matches, then output them for the parser
+        # use "continue" to break loop as soon as a match is found
         for lexeme in y:
-            #print (lexeme)
             if lexeme == "var ":
                 print("VAR")
                 continue
@@ -57,6 +72,8 @@ def ReadInput():
             elif lexeme == ":":
                 print("COLON")
                 continue
+
+            # handle numbers and strings after all keywords have been searched for
             else:
                 number = re.fullmatch("[+-]?\d+(?:\.\d+)?", lexeme)
                 if number:
@@ -66,10 +83,6 @@ def ReadInput():
                 if ident:
                     print("IDENT:" + lexeme)
                     continue
-                else:
-                    print("Syntax Error")
-                    exit()
-
 
 
 if __name__ == '__main__':
