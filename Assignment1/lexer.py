@@ -11,7 +11,7 @@ def ReadInput():
         # convert input from line to standard python string
         x = str(line)
 
-        # filter out obvious errors by checking for illegal characters not defined in the tokens such as "%, $, &, etc."
+        # filter out obvious errors by checking for illegal characters not able to be tokenized such as "%, $, &, etc."
         syntaxError = re.match("^((?!var |function |return |print |=|\+|\-|\*|/|\^|\(|\)|\{|\}|,|:|[+-]?\d+(?:\.\d+)?|[a-zA-Z]+[a-zA-Z0-9_]*).)*$", x)
         if syntaxError:
             print("Error")
@@ -82,6 +82,8 @@ def ReadInput():
                 if ident:
                     print("IDENT:" + lexeme)
                     continue
+
+    print("EOF")
 
 
 if __name__ == '__main__':
