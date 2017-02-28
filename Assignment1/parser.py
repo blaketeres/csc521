@@ -6,6 +6,7 @@ specialCases = ["=-", "+-", "--", "*-", "/-", "^-", "-N", "(-", ")-"]
 parseTreeInput = []
 currentIndex = 0
 parserOutput = ["Program"]
+print(parserOutput)
 
 # Grammar to use parser
 # The @ symbol is a custom sybmol used to delineate quirk tokens from quirk grammar tree entries
@@ -35,20 +36,25 @@ grammarDictionary = {
 }
 
 def addToParseTree(item, secondItem = None):
-    def doThis():
-        if len(parserOutput) > 1:
-            parserOutput[-1].append(temp)
+    def addToTree(x):
+        if len(x) > 1:
+            if isinstance(x[-1], list):
+                addToTree(x[-1])
         else:
-            parserOutput.append(temp)
-        return
+            x.append(temp)
+            parserOutput[:1].append(x)
+            print(parserOutput)
+            return
 
     if secondItem != None:
         temp = [item, str(secondItem)]
-        doThis()
     else:
         temp = [item]
-        doThis()
-
+    if len(parserOutput) == 1:
+        parserOutput.append(temp)
+        return
+    addToTree(parserOutput)
+    return
 
 
 # function to print tokens from grammar structure
@@ -70,7 +76,6 @@ def getLiteral(possibleLeafs):
 def findTreeValue(parseTreeInput, currentIndex, dictEntry):
     def checkProgram():
         global currentIndex
-        print(parserOutput)
         findTreeValue(parseTreeInput, currentIndex, "Statement")
 
         # This may need to be changed to parseTreeInput[currentIndex + 1]
@@ -102,51 +107,44 @@ def findTreeValue(parseTreeInput, currentIndex, dictEntry):
 
     def checkFunctionDeclaration():
         global currentIndex
-        #tokens = getLiteral(possibleLeafs)
+        addToParseTree("Function Declaration")
         findTreeValue(parseTreeInput, currentIndex, "Name")
-        currentIndex += 1
-        if parseTreeInput[currentIndex] == "LPAREN":
-            addToParseTree(str(parseTreeInput[currentIndex]))
-            currentIndex += 1
-            findTreeValue(parseTreeInput, currentIndex, "FunctionParams")
-            if parseTreeInput[currentIndex] == "LBRACE":
-                currentIndex += 1
-                addToParseTree(str(parseTreeInput[currentIndex]))
-                findTreeValue(parseTreeInput, currentIndex, "FunctionBody")
-                if parseTreeInput[currentIndex] == "RBRACE":
-                    currentIndex += 1
-                    addToParseTree(str(parseTreeInput[currentIndex]))
-                    return
-                else:
-                    print("Missing right brace")
-                    exit()
-            else:
-                print("Missing left brace")
-                exit()
-        else:
-            print("Missing parentheses after function declaration")
-            exit()
+        findTreeValue(parseTreeInput, currentIndex, "FunctionParams")
+        findTreeValue(parseTreeInput, currentIndex, "FunctionBody")
+        return
 
     def checkFunctionParams():
         global currentIndex
-        #tokens = getLiteral(possibleLeafs)
-        addToParseTree(str(parseTreeInput[currentIndex]))
-        print(parserOutput)
+        if parseTreeInput[currentIndex] == "LPAREN":
+            addToParseTree(str(parseTreeInput[currentIndex]))
+            currentIndex += 1
+
+            ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
+            if ident:
+                currentIndex += 1
+                findTreeValue(parseTreeInput, currentIndex, "NameList")
+        else:
+            print("Missing Left Parentheses")
+            exit()
+
         if parseTreeInput[currentIndex] == "RPAREN":
+            addToParseTree(str(parseTreeInput[currentIndex]))
             currentIndex += 1
             return
-        ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
-        if ident:
-            currentIndex += 1
-            findTreeValue(parseTreeInput, currentIndex, "NameList")
         else:
-            print("Syntax Error")
+            print("Missing Right Parentheses")
             exit()
 
     def checkFunctionBody():
         global currentIndex
-
-        print("2")
+        if parseTreeInput[currentIndex] == "RETURN":
+            addToParseTree("Return")
+            currentIndex += 1
+            findTreeValue(parseTreeInput, currentIndex, "Return")
+            return
+        findTreeValue(parseTreeInput, currentIndex, "Program")
+        findTreeValue(parseTreeInput, currentIndex, "Return")
+        return
 
     def checkReturn():
         global currentIndex
@@ -212,12 +210,12 @@ def findTreeValue(parseTreeInput, currentIndex, dictEntry):
         global currentIndex
         ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
         if ident:
-            addToParseTree("Function Declaration", str(parseTreeInput[currentIndex]))
-            print(parserOutput)
+            addToParseTree(str(parseTreeInput[currentIndex]))
+            currentIndex += 1
             return
         if parseTreeInput == "SUB" or parseTreeInput == "ADD":
-            currentIndex += 1
             addToParseTree(str(parseTreeInput[currentIndex]))
+            currentIndex += 1
             ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
             if ident:
                 addToParseTree(str(parseTreeInput[currentIndex]))
@@ -225,6 +223,8 @@ def findTreeValue(parseTreeInput, currentIndex, dictEntry):
             else:
                 print("Syntax Error")
                 exit()
+        print("Syntax Error")
+        exit()
 
     def checkNumber():
         global currentIndex
