@@ -5,8 +5,7 @@ specialCases = ["=-", "+-", "--", "*-", "/-", "^-", "-N", "(-", ")-"]
 
 parseTreeInput = []
 currentIndex = 0
-parserOutput = ["Program"]
-print(parserOutput)
+parserOutput = [None]
 
 # Grammar to use parser
 # The @ symbol is a custom sybmol used to delineate quirk tokens from quirk grammar tree entries
@@ -14,8 +13,8 @@ print(parserOutput)
 grammarDictionary = {
     "Program": [["Statement", "Program"], ["Statement"]],
     "Statement": [["FunctionDeclaration"], ["Assignment"], ["Print"]],
-    "FunctionDeclaration": [["@FUNCTION", "Name", "FunctionParams", "@LBRACE", "FunctionBody", "@RBRACE"]],
-    "FunctionParams": [["@LPAREN", "@RPAREN"], ["@LPAREN", "NameList" "@RPAREN"]],
+    "FunctionDeclaration": [["@FUNCTION", "Name", "@LPAREN", "FunctionParams", "@LBRACE", "FunctionBody", "@RBRACE"]],
+    "FunctionParams": [["@RPAREN"], ["NameList", "@RPAREN"]],
     "FunctionBody": [["Return"], ["Program", "Return"]],
     "Return": [["@RETURN", "ParameterList"]],
     "Assignment": [["SingleAssignment"], ["MultipleAssignment"]],
@@ -24,18 +23,19 @@ grammarDictionary = {
     "Print": [["@PRINT", "Expression"]],
     "NameList": [["Name", "@COMMA", "NameList"], ["Name"]],
     "ParameterList": [["Parameter", "@COMMA", "ParameterList"], ["Parameter"]],
-    "Parameter": [["Name"], ["Expression"]],
-    "Expression": [["Term"], ["Expression", "@ADD", "Term"], ["Expression", "@SUB", "Term"]],
-    "Term": [["Factor"], ["Term", "@MULT", "Factor"], ["Term", "@DIV", "Factor"]],
-    "Factor": [["SubExpression"], ["SubExpression", "@EXP", "Factor"], ["Value", "@EXP", "Factor"], ["Value"], ["FunctionCall"]],
-    "FunctionCall": [["Name", "@LPAREN", "ParameterList", "@RPAREN"], ["Name", "@LPAREN", "ParameterList", "@RPAREN", "@COLON", "Number"]],
+    "Parameter": [["Expression"], ["Name"]],
+    "Expression": [["Term", "@ADD", "Expression"], ["Term", "@SUB", "Expression"], ["Term"]],
+    "Term": [["Factor", "@MULT", "Term"], ["Factor", "@DIV", "Term"], ["Factor"]],
+    "Factor": [["SubExpression", "@EXP", "Factor"], ["SubExpression"], ["FunctionCall"], ["Value", "@EXP", "Factor"], ["Value"]],
+    "FunctionCall": [["Name", "@LPAREN", "FunctionCallParams", "@COLON", "Number"], ["Name", "@LPAREN", "FunctionCallParams"]],
+    "FunctionCallParams": [["@RPAREN"], ["ParameterList", "@RPAREN"]],
     "SubExpression": [["@LPAREN", "Expression", "@RPAREN"]],
     "Value": [["Name"], ["Number"]],
     "Name": [["@IDENT"], ["@SUB", "@IDENT"], ["@ADD", "@IDENT"]],
     "Number": [["@NUMBER"], ["@SUB", "@NUMBER"], ["@ADD", "@NUMBER"]]
 }
 
-def addToParseTree(item, secondItem = None):
+def addToParseTree(item):
     def addToTree(x):
         if len(x) > 1:
             if isinstance(x[-1], list):
@@ -43,13 +43,9 @@ def addToParseTree(item, secondItem = None):
         else:
             x.append(temp)
             parserOutput[:1].append(x)
-            print(parserOutput)
-            return
+            #print(parserOutput)
 
-    if secondItem != None:
-        temp = [item, str(secondItem)]
-    else:
-        temp = [item]
+    temp = [item]
     if len(parserOutput) == 1:
         parserOutput.append(temp)
         return
@@ -58,306 +54,415 @@ def addToParseTree(item, secondItem = None):
 
 
 # function to print tokens from grammar structure
-def getLiteral(possibleLeafs):
-    output = []
-    pattern = "@FUNCTION|@LBRACE|@RBRACE|@LPAREN|@RPAREN|@RETURN|@VAR|@ASSIGN|@PRINT|@COMMA|@ADD|@SUB|@MULT|@DIV|@EXP|@COLON|@IDENT|@NUMBER"
-    for value in possibleLeafs:
-        # handles branches which are represented above as nested lists
-        if isinstance(value, list):
-            for subItem in value:
-                match = re.match(pattern, subItem)
-                if match:
-                    tokenToPrint = subItem[1:]
-                    output.append(tokenToPrint)
-    return output
+def isToken(parserOutputItem):
+    pattern = "FUNCTION|LBRACE|RBRACE|LPAREN|RPAREN|RETURN|VAR|ASSIGN|PRINT|COMMA|ADD|SUB|MULT|DIV|EXP|COLON|IDENT:.+|NUMBER:.+"
+    match = re.match(pattern, parserOutputItem)
+    if match:
+        return True
+    return False
 
 # main parse tree. All decision making is handled below for each piece of
 # grammar
-def findTreeValue(parseTreeInput, currentIndex, dictEntry):
-    def checkProgram():
-        global currentIndex
-        checkStatement()
 
-        # This may need to be changed to parseTreeInput[currentIndex + 1]
-        if parseTreeInput[currentIndex] != "EOF":
-            checkProgram()
-        else:
-            print("Finished Parsing")
+def checkProgram():
+    global currentIndex
+    if parserOutput[0] == None:
+        parserOutput[0] = "Program"
+    else:
+        addToParseTree("Program")
 
-    def checkStatement():
-        global currentIndex
-        addToParseTree("Statement")
-        print(parserOutput)
-
-        function = checkFunctionDeclaration()
-        if function:
-            return
-        assignment = checkAssignment()
-        if assignment:
-            return
-            '''
-        beginAssignment = re.match("IDENT:.+", parseTreeInput[currentIndex])
-        if beginAssignment:
-            currentIndex += 1
-            findTreeValue(parseTreeInput, currentIndex, "Assignment")
-            return
-            '''
-
-        xPrint = checkPrint()
-        if xPrint:
-            return
-        else:
-            print("Syntax Error")
-            exit()
-
-    def checkFunctionDeclaration():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "FUNCTION":
-            currentIndex += 1
-        else:
-            return False
-        addToParseTree("Function Declaration")
-        checkName()
-        checkFunctionParams()
-        if parseTreeInput[currentIndex] == "LBRACE":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-        else:
-            print("Missing left brace after function declaration")
-            exit()
-        checkFunctionBody()
-        if parseTreeInput[currentIndex] == "RBRACE":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-        else:
-            print("Missing right brace after function declaration")
-            exit()
+    statement = checkStatement()
+    if statement:
+        program = checkProgram()
+        if program:
+            return True
         return True
-
-    def checkFunctionParams():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "LPAREN":
-            addToParseTree(str(parseTreeInput[currentIndex]))
-            currentIndex += 1
-
-            ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
-            if ident:
-                checkNameList()
-        else:
-            print("Missing Left Parentheses")
-            exit()
-
-        if parseTreeInput[currentIndex] == "RPAREN":
-            addToParseTree(str(parseTreeInput[currentIndex]))
-            currentIndex += 1
-            return
-        else:
-            print("Missing Right Parentheses")
-            exit()
-
-    def checkFunctionBody():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "RETURN":
-            addToParseTree("Return")
-            currentIndex += 1
-            checkReturn()
-            return
-        checkProgram()
-        checkReturn()
-        return
-
-    def checkReturn():
-        global currentIndex
-        addToParseTree(str(parseTreeInput[currentIndex]))
-        checkParameterList()
-        return
-
-    def checkAssignment():
-        global currentIndex
-        single = checkSingleAssignment()
-        if single:
-            return True
-        multiple = checkMultipleAssignment()
-        if multiple:
-            return True
-        else:
-            return False
-
-    def checkSingleAssignment():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "VAR":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-            checkName()
-            if parseTreeInput[currentIndex] == "ASSIGN":
-                addToParseTree(parseTreeInput[currentIndex])
-                currentIndex += 1
-                checkExpression()
-                return True
-            else:
-                print("Assignment error")
-                return False
-        else:
-            print("Missing 'var' identifier1")
-            return False
-
-    def checkMultipleAssignment():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "VAR":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-            checkNameList()
-            if parseTreeInput[currentIndex] == "ASSIGN":
-                addToParseTree(parseTreeInput[currentIndex])
-                currentIndex += 1
-                checkFunctionCall()
-                return True
-            else:
-                print("Assignment error3")
-                return False
-        else:
-            print("Missing 'var' identifier2")
-            return False
-
-    def checkPrint():
-        global currentIndex
-        if parseTreeInput[currentIndex] == "PRINT":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-            checkExpression()
-            return True
-        else:
-            return False
-
-    def checkNameList():
-        global currentIndex
-        name = checkName()
-        if name:
-            if parseTreeInput[currentIndex] == "COMMA":
-                addToParseTree(parseTreeInput[currentIndex])
-                currentIndex += 1
-                name2 = checkNameList()
-                if name2:
-                    return True
-                else:
-                    print("Extraneous comma")
-                    return False
-            else:
-                return True
-        else:
-            print("Namelist error")
-            return False
-
-    def checkParameterList():
-        global currentIndex
-        print("Function 9")
-
-    def checkParameter():
-        global currentIndex
-        print("Function 10")
-
-    def checkExpression():
-        global currentIndex
-        print("Function 11")
-
-    def checkTerm():
-        global currentIndex
-        print("Function 12")
-
-    def checkTerm():
-        global currentIndex
-        print("Function 13")
-
-    def checkFactor():
-        global currentIndex
-        print("Function 14")
-
-    def checkFunctionCall():
-        global currentIndex
-        print("Function 15")
-
-    def checkSubExpression():
-        global currentIndex
-        print("Function 16")
-
-    def checkValue():
-        global currentIndex
-        print("Function 17")
-
-    def checkName():
-        global currentIndex
-        ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
-        if ident:
-            addToParseTree(str(parseTreeInput[currentIndex]))
-            currentIndex += 1
-            return True
-        if parseTreeInput == "SUB" or parseTreeInput == "ADD":
-            addToParseTree(str(parseTreeInput[currentIndex]))
-            currentIndex += 1
-            ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
-            if ident:
-                addToParseTree(str(parseTreeInput[currentIndex]))
-                return True
-            else:
-                print("Name Error1")
-                return False
-        print("Name Error2")
+    else:
         return False
 
-    def checkNumber():
-        global currentIndex
-        print("Function 19")
+def checkStatement():
+    global currentIndex
+    addToParseTree("Statement")
+    function = checkFunctionDeclaration()
+    if function:
+        return True
+    assignment = checkAssignment()
+    if assignment:
+        return True
+    xPrint = checkPrint()
+    if xPrint:
+        return True
+    return False
 
-    possibleLeafs = grammarDictionary[dictEntry]
+def checkFunctionDeclaration():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "FUNCTION":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        name = checkName()
+        if name:
+            if parseTreeInput[currentIndex] == "LPAREN":
+                addToParseTree(parseTreeInput[currentIndex])
+                currentIndex += 1
+                functionParams = checkFunctionParams()
+                if functionParams:
+                    if parseTreeInput[currentIndex] == "LBRACE":
+                        addToParseTree(parseTreeInput[currentIndex])
+                        currentIndex += 1
+                        functionBody = checkFunctionBody()
+                        if functionBody:
+                            if parseTreeInput[currentIndex] == "RBRACE":
+                                addToParseTree(parseTreeInput[currentIndex])
+                                currentIndex += 1
+                                return True
+                            else:
+                                currentIndex -= 1
+                                print("Missing right brace in function declaration")
+                                return False
+                        else:
+                            print("function body error")
+                            return False
+                    else:
+                        currentIndex -= 1
+                        print("Missing left brace in function declaration")
+                        return False
+                else:
+                    print("function parameter error")
+                    return False
+            else:
+                currentIndex -= 1
+                print("Missing left parentheses in function declaration")
+                return False
+        else:
+            print("function name error")
+            return False
+    return False
 
-    if dictEntry == "Program":
-        checkProgram()
-    elif dictEntry == "Statement":
-        checkStatement()
-    elif dictEntry == "FunctionDeclaration":
-        checkFunctionDeclaration()
-    elif dictEntry == "FunctionParams":
-        checkFunctionParams()
-    elif dictEntry == "FunctionBody":
-        checkFunctionBody()
-    elif dictEntry == "Return":
-        checkReturn()
-    elif dictEntry == "Assignment":
-        checkAssignment()
-    elif dictEntry == "SingleAssignment":
-        checkSingleAssignment()
-    elif dictEntry == "MultipleAssignment":
-        checkMultipleAssignment()
-    elif dictEntry == "Print":
-        checkPrint()
-    elif dictEntry == "NameList":
-        checkNameList()
-    elif dictEntry == "ParameterList":
-        checkParameterList()
-    elif dictEntry == "Parameter":
-        checkParameter()
-    elif dictEntry == "Expression":
-        checkExpression()
-    elif dictEntry == "Term":
-        checkTerm()
-    elif dictEntry == "Factor":
-        checkFactor
-    elif dictEntry == "FunctionCall":
-        checkFunctionCall()
-    elif dictEntry == "SubExpression":
-        checkSubExpression()
-    elif dictEntry == "Value":
-        checkValue()
-    elif dictEntry == "Name":
-        checkName()
-    elif dictEntry == "Number":
-        checkNumber()
-    else:
-        print("BOY YOU GOT SOMETHING WRONG")
+def checkFunctionParams():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "RPAREN":
+        addToParseTree("FunctionParams")
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        return True
+    nameList = checkNameList()
+    if nameList:
+        if parseTreeInput[currentIndex] == "RPAREN":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            return True
+        else:
+            print("Missing Right Parentheses")
+            return False
+    print("Function Parameter error")
+    return False
 
+def checkFunctionBody():
+    global currentIndex
+    xReturn = checkReturn()
+    if xReturn:
+        return True
+    program = checkProgram()
+    if program:
+        xReturn = checkReturn()
+        if xReturn:
+            return True
+        else:
+            print("Missing return statement")
+            return False
+    return False
+
+def checkReturn():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "RETURN":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        parameterList = checkParameterList()
+        if parameterList:
+            return True
+        else:
+            currentIndex -= 1
+            print("Expected paramaters")
+            return False
+    return False
+
+def checkAssignment():
+    global currentIndex
+    single = checkSingleAssignment()
+    if single:
+        return True
+    multiple = checkMultipleAssignment()
+    if multiple:
+        return True
+    return False
+
+def checkSingleAssignment():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "VAR":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        name = checkName()
+        if name:
+            if parseTreeInput[currentIndex] == "ASSIGN":
+                addToParseTree(parseTreeInput[currentIndex])
+                currentIndex += 1
+                expression = checkExpression()
+                if expression:
+                    return True
+                else:
+                    currentIndex -= 1
+                    print("Assignment error")
+                    return False
+        else:
+            currentIndex -= 1
+            return False:
+    return False
+
+def checkMultipleAssignment():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "VAR":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        nameList = checkNameList()
+        if nameList:
+            if parseTreeInput[currentIndex] == "ASSIGN":
+                addToParseTree(parseTreeInput[currentIndex])
+                currentIndex += 1
+                functionCall = checkFunctionCall()
+                if functionCall:
+                    return True
+                else:
+                    print("Assignment error3")
+                    return False
+    return False
+
+def checkPrint():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "PRINT":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        expression = checkExpression()
+        if expression:
+            return True
+    return False
+
+def checkNameList():
+    global currentIndex
+    name = checkName()
+    if name:
+        if parseTreeInput[currentIndex] == "COMMA":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            nameList = checkNameList()
+            if nameList:
+                return True
+            else:
+                print("Extraneous comma in Namelist")
+                return False
+        return True
+    return False
+
+def checkParameterList():
+    global currentIndex
+    parameter = checkParameter()
+    if parameter:
+        if parseTreeInput[currentIndex] == "COMMA":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            parameterList = checkParameterList()
+            if parameterList:
+                return True
+            else:
+                print("Extraneous comma in ParameterList")
+                return False
+        return True
+    return False
+
+def checkParameter():
+    global currentIndex
+    expression = checkExpression()
+    if expression:
+        return True
+    name = checkName()
+    if name:
+        return True
+    return False
+
+def checkExpression():
+    global currentIndex
+    term = checkTerm()
+    if term:
+        if parseTreeInput[currentIndex] == "ADD" or parseTreeInput[currentIndex] == "SUB":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            expression = checkExpression()
+            if expression:
+                return True
+            else:
+                print("Expected Expression")
+                return False
+        return True
+    return False
+
+def checkTerm():
+    global currentIndex
+    factor = checkFactor()
+    if factor:
+        if parseTreeInput[currentIndex] == "MULT" or parseTreeInput[currentIndex] == "DIV":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            term = checkTerm()
+            if term:
+                return True
+            else:
+                print("Expected Term")
+                return False
+        return True
+    return False
+
+def checkFactor():
+    global currentIndex
+    subExpression = checkSubExpression()
+    if subExpression:
+        if parseTreeInput[currentIndex] == "EXP":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            factor = checkFactor()
+            if factor:
+                return True
+            else:
+                print("Expected Factor")
+                return False
+        return True
+    functionCall = checkFunctionCall()
+    if functionCall:
+        return True
+    value = checkValue()
+    if value:
+        if parseTreeInput[currentIndex] == "EXP":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            factor = checkFactor()
+            if factor:
+                return True
+            else:
+                print("Expected Factor")
+                return False
+        return True
+    return False
+
+def checkFunctionCall():
+    global currentIndex
+    name = checkName()
+    if name:
+        if parseTreeInput[currentIndex] == "LPAREN":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            functionCallParams = checkFunctionCallParams()
+            if functionCallParams:
+                if parseTreeInput[currentIndex] == "COLON":
+                    addToParseTree(parseTreeInput[currentIndex])
+                    currentIndex += 1
+                    number = checkNumber()
+                    if number:
+                        return True
+                    else:
+                        print("Expected Number")
+                        return False
+                return True
+            else:
+                print("Expected functionCallParams")
+                return False
+        else:
+            print("Expected left parentheses")
+            return False
+    return False
+
+def checkFunctionCallParams():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "RPAREN":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        return True
+    parameterList = checkParameterList()
+    if parameterList:
+        if parseTreeInput[currentIndex] == "RPAREN":
+            addToParseTree(parseTreeInput[currentIndex])
+            currentIndex += 1
+            return True
+        else:
+            print("Missing Right Parentheses")
+            return False
+    return False
+
+def checkSubExpression():
+    global currentIndex
+    if parseTreeInput[currentIndex] == "LPAREN":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        expression = checkExpression()
+        if expression:
+            if parseTreeInput[currentIndex] == "RPAREN":
+                addToParseTree(parseTreeInput[currentIndex])
+                currentIndex += 1
+                return True
+            else:
+                print("Expected right parentheses")
+                return False
+        else:
+            print("Expexted Expression")
+            return False
+    return False
+
+def checkValue():
+    global currentIndex
+    name = checkName()
+    if name:
+        return True
+    number = checkNumber()
+    if number:
+        return True
+    return False
+
+def checkName():
+    global currentIndex
+    ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
+    if ident:
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        return True
+    if parseTreeInput == "SUB" or parseTreeInput == "ADD":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
+        if ident:
+            addToParseTree(parseTreeInput[currentIndex])
+            return True
+        else:
+            print("Name Error1")
+            return False
+    return False
+
+def checkNumber():
+    global currentIndex
+    number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
+    if number:
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        return True
+    if parseTreeInput == "SUB" or parseTreeInput == "ADD":
+        addToParseTree(parseTreeInput[currentIndex])
+        currentIndex += 1
+        number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
+        if number:
+            addToParseTree(parseTreeInput[currentIndex])
+            return True
+        else:
+            print("Number Error1")
+            return False
+    return False
 
 def ReadInput():
-
     global output
     tokens = sys.stdin.readlines()
 
@@ -370,8 +475,10 @@ def ReadInput():
         y = x.replace("\n", "")
         parseTreeInput.append(y)
 
-    findTreeValue(parseTreeInput, currentIndex, "Program")
-    print(parserOutput)
+    validProgram = checkProgram()
+    if validProgram:
+        print(parserOutput)
+        print("Valid quirk program")
 
 
 if __name__ == '__main__':
