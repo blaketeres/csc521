@@ -101,6 +101,7 @@ def checkFunctionDeclaration():
         currentIndex += 1
         name = checkName()
         if name:
+            ### currentIndex += 1
             if parseTreeInput[currentIndex] == "LPAREN":
                 addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
@@ -116,32 +117,27 @@ def checkFunctionDeclaration():
                                 currentIndex += 1
                                 return True
                             else:
-                                currentIndex -= 1
-                                print("Missing right brace in function declaration")
                                 return False
                         else:
-                            print("function body error")
+                            currentIndex -= 4
                             return False
                     else:
-                        currentIndex -= 1
-                        print("Missing left brace in function declaration")
+                        currentIndex -= 3
                         return False
                 else:
-                    print("function parameter error")
+                    currentIndex -= 3
                     return False
             else:
-                currentIndex -= 1
-                print("Missing left parentheses in function declaration")
+                currentIndex -= 2
                 return False
         else:
-            print("function name error")
+            currentIndex -= 1
             return False
     return False
 
 def checkFunctionParams():
     global currentIndex
     if parseTreeInput[currentIndex] == "RPAREN":
-        addToParseTree("FunctionParams")
         addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
         return True
@@ -152,9 +148,7 @@ def checkFunctionParams():
             currentIndex += 1
             return True
         else:
-            print("Missing Right Parentheses")
             return False
-    print("Function Parameter error")
     return False
 
 def checkFunctionBody():
@@ -168,7 +162,6 @@ def checkFunctionBody():
         if xReturn:
             return True
         else:
-            print("Missing return statement")
             return False
     return False
 
@@ -182,7 +175,6 @@ def checkReturn():
             return True
         else:
             currentIndex -= 1
-            print("Expected paramaters")
             return False
     return False
 
@@ -210,12 +202,14 @@ def checkSingleAssignment():
                 if expression:
                     return True
                 else:
-                    currentIndex -= 1
-                    print("Assignment error")
+                    currentIndex -= 3
                     return False
+            else:
+                currentIndex -= 2
+                return False
         else:
             currentIndex -= 1
-            return False:
+            return False
     return False
 
 def checkMultipleAssignment():
@@ -232,8 +226,14 @@ def checkMultipleAssignment():
                 if functionCall:
                     return True
                 else:
-                    print("Assignment error3")
+                    currentIndex -= 3
                     return False
+            else:
+                currentIndex -= 2
+                return False
+        else:
+            currentIndex -= 1
+            return False
     return False
 
 def checkPrint():
@@ -257,7 +257,7 @@ def checkNameList():
             if nameList:
                 return True
             else:
-                print("Extraneous comma in Namelist")
+                currentIndex -= 2
                 return False
         return True
     return False
@@ -273,7 +273,7 @@ def checkParameterList():
             if parameterList:
                 return True
             else:
-                print("Extraneous comma in ParameterList")
+                currentIndex -= 1
                 return False
         return True
     return False
@@ -299,7 +299,7 @@ def checkExpression():
             if expression:
                 return True
             else:
-                print("Expected Expression")
+                currentIndex -= 1
                 return False
         return True
     return False
@@ -315,7 +315,7 @@ def checkTerm():
             if term:
                 return True
             else:
-                print("Expected Term")
+                currentIndex -= 1
                 return False
         return True
     return False
@@ -331,7 +331,7 @@ def checkFactor():
             if factor:
                 return True
             else:
-                print("Expected Factor")
+                currentIndex -= 1
                 return False
         return True
     functionCall = checkFunctionCall()
@@ -346,7 +346,7 @@ def checkFactor():
             if factor:
                 return True
             else:
-                print("Expected Factor")
+                currentIndex -= 1
                 return False
         return True
     return False
@@ -367,14 +367,14 @@ def checkFunctionCall():
                     if number:
                         return True
                     else:
-                        print("Expected Number")
+                        currentIndex -= 4
                         return False
                 return True
             else:
-                print("Expected functionCallParams")
+                currentIndex -= 2
                 return False
         else:
-            print("Expected left parentheses")
+            currentIndex -= 1
             return False
     return False
 
@@ -391,7 +391,6 @@ def checkFunctionCallParams():
             currentIndex += 1
             return True
         else:
-            print("Missing Right Parentheses")
             return False
     return False
 
@@ -407,10 +406,10 @@ def checkSubExpression():
                 currentIndex += 1
                 return True
             else:
-                print("Expected right parentheses")
+                currentIndex -= 1
                 return False
         else:
-            print("Expexted Expression")
+            currentIndex -= 1
             return False
     return False
 
@@ -439,7 +438,7 @@ def checkName():
             addToParseTree(parseTreeInput[currentIndex])
             return True
         else:
-            print("Name Error1")
+            currentIndex -= 1
             return False
     return False
 
@@ -458,7 +457,7 @@ def checkNumber():
             addToParseTree(parseTreeInput[currentIndex])
             return True
         else:
-            print("Number Error1")
+            currentIndex -= 1
             return False
     return False
 
