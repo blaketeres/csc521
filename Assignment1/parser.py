@@ -52,7 +52,6 @@ def addToParseTree(item):
     addToTree(parserOutput)
     return
 
-
 # function to print tokens from grammar structure
 def isToken(parserOutputItem):
     pattern = "FUNCTION|LBRACE|RBRACE|LPAREN|RPAREN|RETURN|VAR|ASSIGN|PRINT|COMMA|ADD|SUB|MULT|DIV|EXP|COLON|IDENT:.+|NUMBER:.+"
@@ -73,16 +72,15 @@ def checkProgram():
 
     statement = checkStatement()
     if statement:
+        addToParseTree("Statement")
         program = checkProgram()
         if program:
             return True
         return True
-    else:
-        return False
+    return False
 
 def checkStatement():
     global currentIndex
-    addToParseTree("Statement")
     function = checkFunctionDeclaration()
     if function:
         return True
@@ -101,7 +99,6 @@ def checkFunctionDeclaration():
         currentIndex += 1
         name = checkName()
         if name:
-            ### currentIndex += 1
             if parseTreeInput[currentIndex] == "LPAREN":
                 addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
@@ -225,15 +222,12 @@ def checkMultipleAssignment():
                 functionCall = checkFunctionCall()
                 if functionCall:
                     return True
-                else:
-                    currentIndex -= 3
-                    return False
-            else:
-                currentIndex -= 2
+                currentIndex -= 3
                 return False
-        else:
-            currentIndex -= 1
+            currentIndex -= 2
             return False
+        currentIndex -= 1
+        return False
     return False
 
 def checkPrint():
@@ -256,9 +250,8 @@ def checkNameList():
             nameList = checkNameList()
             if nameList:
                 return True
-            else:
-                currentIndex -= 2
-                return False
+            currentIndex -= 2
+            return False
         return True
     return False
 
@@ -272,9 +265,8 @@ def checkParameterList():
             parameterList = checkParameterList()
             if parameterList:
                 return True
-            else:
-                currentIndex -= 1
-                return False
+            currentIndex -= 1
+            return False
         return True
     return False
 
@@ -298,9 +290,8 @@ def checkExpression():
             expression = checkExpression()
             if expression:
                 return True
-            else:
-                currentIndex -= 1
-                return False
+            currentIndex -= 1
+            return False
         return True
     return False
 
@@ -314,9 +305,8 @@ def checkTerm():
             term = checkTerm()
             if term:
                 return True
-            else:
-                currentIndex -= 1
-                return False
+            currentIndex -= 1
+            return False
         return True
     return False
 
@@ -330,9 +320,8 @@ def checkFactor():
             factor = checkFactor()
             if factor:
                 return True
-            else:
-                currentIndex -= 1
-                return False
+            currentIndex -= 1
+            return False
         return True
     functionCall = checkFunctionCall()
     if functionCall:
@@ -345,9 +334,8 @@ def checkFactor():
             factor = checkFactor()
             if factor:
                 return True
-            else:
-                currentIndex -= 1
-                return False
+            currentIndex -= 1
+            return False
         return True
     return False
 
@@ -366,16 +354,13 @@ def checkFunctionCall():
                     number = checkNumber()
                     if number:
                         return True
-                    else:
-                        currentIndex -= 4
-                        return False
+                    currentIndex -= 3
+                    return False
                 return True
-            else:
-                currentIndex -= 2
-                return False
-        else:
-            currentIndex -= 1
+            currentIndex -= 2
             return False
+        currentIndex -= 1
+        return False
     return False
 
 def checkFunctionCallParams():
@@ -390,8 +375,7 @@ def checkFunctionCallParams():
             addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
             return True
-        else:
-            return False
+        return False
     return False
 
 def checkSubExpression():
@@ -405,12 +389,10 @@ def checkSubExpression():
                 addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
                 return True
-            else:
-                currentIndex -= 1
-                return False
-        else:
             currentIndex -= 1
             return False
+        currentIndex -= 1
+        return False
     return False
 
 def checkValue():
@@ -437,9 +419,8 @@ def checkName():
         if ident:
             addToParseTree(parseTreeInput[currentIndex])
             return True
-        else:
-            currentIndex -= 1
-            return False
+        currentIndex -= 1
+        return False
     return False
 
 def checkNumber():
@@ -456,9 +437,8 @@ def checkNumber():
         if number:
             addToParseTree(parseTreeInput[currentIndex])
             return True
-        else:
-            currentIndex -= 1
-            return False
+        currentIndex -= 1
+        return False
     return False
 
 def ReadInput():
@@ -474,11 +454,11 @@ def ReadInput():
         y = x.replace("\n", "")
         parseTreeInput.append(y)
 
-    validProgram = checkProgram()
-    if validProgram:
-        print(parserOutput)
-        print("Valid quirk program")
-
+    checkProgram()
+    if parseTreeInput[currentIndex] == "EOF":
+        print("Parsing OK")
+    else:
+        print("Error ->", parseTreeInput[currentIndex])
 
 if __name__ == '__main__':
     ReadInput()
