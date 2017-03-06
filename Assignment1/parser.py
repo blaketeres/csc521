@@ -1,448 +1,444 @@
 import sys
 import re
 
-specialCases = ["=-", "+-", "--", "*-", "/-", "^-", "-N", "(-", ")-"]
-
 parseTreeInput = []
 currentIndex = 0
 parserOutput = [None]
+outputFinal = []
 
-# Grammar to use parser
-# The @ symbol is a custom sybmol used to delineate quirk tokens from quirk grammar tree entries
-# "|" branches have been replaced by nested lists
-grammarDictionary = {
-    "Program": [["Statement", "Program"], ["Statement"]],
-    "Statement": [["FunctionDeclaration"], ["Assignment"], ["Print"]],
-    "FunctionDeclaration": [["@FUNCTION", "Name", "@LPAREN", "FunctionParams", "@LBRACE", "FunctionBody", "@RBRACE"]],
-    "FunctionParams": [["@RPAREN"], ["NameList", "@RPAREN"]],
-    "FunctionBody": [["Return"], ["Program", "Return"]],
-    "Return": [["@RETURN", "ParameterList"]],
-    "Assignment": [["SingleAssignment"], ["MultipleAssignment"]],
-    "SingleAssignment": [["@VAR", "Name", "@ASSIGN", "Expression"]],
-    "MultipleAssignment": [["@VAR", "NameList", "@ASSIGN", "FunctionCall"]],
-    "Print": [["@PRINT", "Expression"]],
-    "NameList": [["Name", "@COMMA", "NameList"], ["Name"]],
-    "ParameterList": [["Parameter", "@COMMA", "ParameterList"], ["Parameter"]],
-    "Parameter": [["Expression"], ["Name"]],
-    "Expression": [["Term", "@ADD", "Expression"], ["Term", "@SUB", "Expression"], ["Term"]],
-    "Term": [["Factor", "@MULT", "Term"], ["Factor", "@DIV", "Term"], ["Factor"]],
-    "Factor": [["SubExpression", "@EXP", "Factor"], ["SubExpression"], ["FunctionCall"], ["Value", "@EXP", "Factor"], ["Value"]],
-    "FunctionCall": [["Name", "@LPAREN", "FunctionCallParams", "@COLON", "Number"], ["Name", "@LPAREN", "FunctionCallParams"]],
-    "FunctionCallParams": [["@RPAREN"], ["ParameterList", "@RPAREN"]],
-    "SubExpression": [["@LPAREN", "Expression", "@RPAREN"]],
-    "Value": [["Name"], ["Number"]],
-    "Name": [["@IDENT"], ["@SUB", "@IDENT"], ["@ADD", "@IDENT"]],
-    "Number": [["@NUMBER"], ["@SUB", "@NUMBER"], ["@ADD", "@NUMBER"]]
-}
+# append subtree to immediate parent tree upon function returning True
+# this will keep the order of the tree in tact, and eliminate incorrect leafs
+def addToParentTree(parentTree, item, item2 = None):
+    if item2 != None:
+        if not parentTree:
+            parentTree = [item, item2]
 
-def addToParseTree(item):
-    def addToTree(x):
-        if len(x) > 1:
-            if isinstance(x[-1], list):
-                addToTree(x[-1])
         else:
-            x.append(temp)
-            parserOutput[:1].append(x)
-            #print(parserOutput)
-
-    temp = [item]
-    if len(parserOutput) == 1:
-        parserOutput.append(temp)
-        return
-    addToTree(parserOutput)
-    return
-
-# function to print tokens from grammar structure
-def isToken(parserOutputItem):
-    pattern = "FUNCTION|LBRACE|RBRACE|LPAREN|RPAREN|RETURN|VAR|ASSIGN|PRINT|COMMA|ADD|SUB|MULT|DIV|EXP|COLON|IDENT:.+|NUMBER:.+"
-    match = re.match(pattern, parserOutputItem)
-    if match:
-        return True
-    return False
-
-# main parse tree. All decision making is handled below for each piece of
-# grammar
-
-def checkProgram():
-    global currentIndex
-    if parserOutput[0] == None:
-        parserOutput[0] = "Program"
+            parentTree = [item, item2, parentTree]
     else:
-        addToParseTree("Program")
+        if not parentTree:
+            parentTree = [item]
+        else:
+            parentTree = [item, parentTree]
+    return parentTree
 
-    statement = checkStatement()
-    if statement:
-        addToParseTree("Statement")
-        program = checkProgram()
-        if program:
-            return True
-        return True
-    return False
-
-def checkStatement():
+'''
+Main parse tree. All decision making is handled below for each piece of
+grammar. Every function below follows the same format, checking possible
+leafs and returning True upon success, and False upon failure.
+The program will exit if a possible path is not found before the
+parser reaches the end of the input file
+'''
+def checkProgram(parentTree):
     global currentIndex
-    function = checkFunctionDeclaration()
-    if function:
-        return True
-    assignment = checkAssignment()
-    if assignment:
-        return True
-    xPrint = checkPrint()
-    if xPrint:
-        return True
-    return False
+    statement = checkStatement(parentTree)
+    if statement[0]:
+        program = checkProgram(statement[1])
+        if program[0]:
+            parentTree = addToParentTree(program[1], "Program0")
+            return [True, parentTree]
+        parentTree = addToParentTree(statement[1], "Program1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkFunctionDeclaration():
+
+def checkStatement(parentTree):
+    global currentIndex
+    function = checkFunctionDeclaration(parentTree)
+    if function[0]:
+        parentTree = addToParentTree(function[1], "Statement0")
+        return [True, parentTree]
+    assignment = checkAssignment(parentTree)
+    if assignment[0]:
+        parentTree = addToParentTree(assignment[1], "Statement1")
+        return [True, parentTree]
+    xPrint = checkPrint(parentTree)
+    if xPrint[0]:
+        parentTree = addToParentTree(xPrint[1], "Statement2")
+        return [True, parentTree]
+    return [False, False]
+
+
+def checkFunctionDeclaration(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "FUNCTION":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        name = checkName()
-        if name:
+        name = checkName(parentTree)
+        if name[0]:
             if parseTreeInput[currentIndex] == "LPAREN":
-                addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
-                functionParams = checkFunctionParams()
-                if functionParams:
+                functionParams = checkFunctionParams(name[1])
+                if functionParams[0]:
                     if parseTreeInput[currentIndex] == "LBRACE":
-                        addToParseTree(parseTreeInput[currentIndex])
                         currentIndex += 1
-                        functionBody = checkFunctionBody()
-                        if functionBody:
+                        functionBody = checkFunctionBody(functionParams[1])
+                        if functionBody[0]:
                             if parseTreeInput[currentIndex] == "RBRACE":
-                                addToParseTree(parseTreeInput[currentIndex])
                                 currentIndex += 1
-                                return True
+                                parentTree = addToParentTree(functionBody[1], "Function Declaration")
+                                return [True, parentTree]
                             else:
-                                return False
+                                return [False, False]
                         else:
                             currentIndex -= 4
-                            return False
+                            return [False, False]
                     else:
                         currentIndex -= 3
-                        return False
+                        return [False, False]
                 else:
                     currentIndex -= 3
-                    return False
+                    return [False, False]
             else:
                 currentIndex -= 2
-                return False
+                return [False, False]
         else:
             currentIndex -= 1
-            return False
-    return False
+            return [False, False]
+    return [False, False]
 
-def checkFunctionParams():
+
+def checkFunctionParams(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "RPAREN":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        return True
-    nameList = checkNameList()
-    if nameList:
+        parentTree = addToParentTree(parentTree, "FunctionParams0")
+        return [True, parentTree]
+    nameList = checkNameList(parentTree)
+    if nameList[0]:
         if parseTreeInput[currentIndex] == "RPAREN":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            return True
+            parentTree = addToParentTree(nameList[1], "FunctionParams1")
+            return [True, parentTree]
         else:
-            return False
-    return False
+            return [False, False]
+    return [False, False]
 
-def checkFunctionBody():
+
+def checkFunctionBody(parentTree):
     global currentIndex
-    xReturn = checkReturn()
-    if xReturn:
-        return True
-    program = checkProgram()
-    if program:
-        xReturn = checkReturn()
-        if xReturn:
-            return True
+    xReturn = checkReturn(parentTree)
+    if xReturn[0]:
+        parentTree = addToParentTree(xReturn[1], "FunctionBody0")
+        return [True, parentTree]
+    program = checkProgram(parentTree)
+    if program[0]:
+        xReturn = checkReturn(program[1])
+        if xReturn[0]:
+            parentTree = addToParentTree(xReturn[1], "FunctionBody1")
+            return [True, parentTree]
         else:
-            return False
-    return False
+            return [False, False]
+    return [False, False]
 
-def checkReturn():
+
+def checkReturn(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "RETURN":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        parameterList = checkParameterList()
-        if parameterList:
-            return True
+        parameterList = checkParameterList(parentTree)
+        if parameterList[0]:
+            parentTree = addToParentTree(parameterList[1], "Return")
+            return [True, parentTree]
         else:
             currentIndex -= 1
-            return False
-    return False
+            return [False, False]
+    return [False, False]
 
-def checkAssignment():
+
+def checkAssignment(parentTree):
     global currentIndex
-    single = checkSingleAssignment()
-    if single:
-        return True
-    multiple = checkMultipleAssignment()
-    if multiple:
-        return True
-    return False
+    single = checkSingleAssignment(parentTree)
+    if single[0]:
+        parentTree = addToParentTree(single[1], "Assignment0")
+        return [True, parentTree]
+    multiple = checkMultipleAssignment(parentTree)
+    if multiple[0]:
+        parentTree = addToParentTree(multiple[1], "Assignment1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkSingleAssignment():
+
+def checkSingleAssignment(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "VAR":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        name = checkName()
-        if name:
+        name = checkName(parentTree)
+        if name[0]:
             if parseTreeInput[currentIndex] == "ASSIGN":
-                addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
-                expression = checkExpression()
-                if expression:
-                    return True
+                expression = checkExpression(name[1])
+                if expression[0]:
+                    parentTree = addToParentTree(expression[1], "SingleAssignment")
+                    return [True, parentTree]
                 else:
                     currentIndex -= 3
-                    return False
+                    return [False, False]
             else:
                 currentIndex -= 2
-                return False
+                return [False, False]
         else:
             currentIndex -= 1
-            return False
-    return False
+            return [False, False]
+    return [False, False]
 
-def checkMultipleAssignment():
+
+def checkMultipleAssignment(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "VAR":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        nameList = checkNameList()
-        if nameList:
+        nameList = checkNameList(parentTree)
+        if nameList[0]:
             if parseTreeInput[currentIndex] == "ASSIGN":
-                addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
-                functionCall = checkFunctionCall()
-                if functionCall:
-                    return True
+                functionCall = checkFunctionCall(name[1])
+                if functionCall[0]:
+                    parentTree = addToParentTree(functionCall[1], "MultipleAssignment")
+                    return [True, parentTree]
                 currentIndex -= 3
-                return False
+                return [False, False]
             currentIndex -= 2
-            return False
+            return [False, False]
         currentIndex -= 1
-        return False
-    return False
+        return [False, False]
+    return [False, False]
 
-def checkPrint():
+
+def checkPrint(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "PRINT":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        expression = checkExpression()
-        if expression:
-            return True
-    return False
+        expression = checkExpression(parentTree)
+        if expression[0]:
+            parentTree = addToParentTree(expression[1], "Print")
+            return [True, parentTree]
+    return [False, False]
 
-def checkNameList():
+
+def checkNameList(parentTree):
     global currentIndex
-    name = checkName()
-    if name:
+    name = checkName(parentTree)
+    if name[0]:
         if parseTreeInput[currentIndex] == "COMMA":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            nameList = checkNameList()
-            if nameList:
-                return True
+            nameList = checkNameList(name[1])
+            if nameList[0]:
+                parentTree = addToParentTree(nameList[1], "NameList0")
+                return [True, parentTree]
             currentIndex -= 2
-            return False
-        return True
-    return False
+            return [False, False]
+        parentTree = addToParentTree(name[1], "NameList1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkParameterList():
+
+def checkParameterList(parentTree):
     global currentIndex
-    parameter = checkParameter()
-    if parameter:
+    parameter = checkParameter(parentTree)
+    if parameter[0]:
         if parseTreeInput[currentIndex] == "COMMA":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            parameterList = checkParameterList()
-            if parameterList:
-                return True
+            parameterList = checkParameterList(parameter[1])
+            if parameterList[0]:
+                parentTree = addToParentTree(parameterList[1], "ParameterList0")
+                return [True, parentTree]
             currentIndex -= 1
-            return False
-        return True
-    return False
+            return [False, False]
+        parentTree = addToParentTree(parameter[1], "ParameterList1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkParameter():
-    global currentIndex
-    expression = checkExpression()
-    if expression:
-        return True
-    name = checkName()
-    if name:
-        return True
-    return False
 
-def checkExpression():
+def checkParameter(parentTree):
     global currentIndex
-    term = checkTerm()
-    if term:
+    expression = checkExpression(parentTree)
+    if expression[0]:
+        parentTree = addToParentTree(expression[1], "Parameter0")
+        return [True, parentTree]
+    name = checkName(parentTree)
+    if name[0]:
+        parentTree = addToParentTree(name[1], "Parameter1")
+        return [True, parentTree]
+    return [False, False]
+
+
+def checkExpression(parentTree):
+    global currentIndex
+    term = checkTerm(parentTree)
+    if term[0]:
         if parseTreeInput[currentIndex] == "ADD" or parseTreeInput[currentIndex] == "SUB":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            expression = checkExpression()
-            if expression:
-                return True
+            expression = checkExpression(term[1])
+            if expression[0]:
+                parentTree = addToParentTree(expression[1], "Expression0")
+                return [True, parentTree]
             currentIndex -= 1
-            return False
-        return True
-    return False
+            return [False, False]
+        parentTree = addToParentTree(term[1], "Expression1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkTerm():
+
+def checkTerm(parentTree):
     global currentIndex
-    factor = checkFactor()
-    if factor:
+    factor = checkFactor(parentTree)
+    if factor[0]:
         if parseTreeInput[currentIndex] == "MULT" or parseTreeInput[currentIndex] == "DIV":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            term = checkTerm()
-            if term:
-                return True
+            term = checkTerm(factor[1])
+            if term[0]:
+                parentTree = addToParentTree(term[1], "Term0")
+                return [True, parentTree]
             currentIndex -= 1
-            return False
-        return True
-    return False
+            return [False, False]
+        parentTree = addToParentTree(factor[1], "Term1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkFactor():
-    global currentIndex
-    subExpression = checkSubExpression()
-    if subExpression:
-        if parseTreeInput[currentIndex] == "EXP":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-            factor = checkFactor()
-            if factor:
-                return True
-            currentIndex -= 1
-            return False
-        return True
-    functionCall = checkFunctionCall()
-    if functionCall:
-        return True
-    value = checkValue()
-    if value:
-        if parseTreeInput[currentIndex] == "EXP":
-            addToParseTree(parseTreeInput[currentIndex])
-            currentIndex += 1
-            factor = checkFactor()
-            if factor:
-                return True
-            currentIndex -= 1
-            return False
-        return True
-    return False
 
-def checkFunctionCall():
+def checkFactor(parentTree):
     global currentIndex
-    name = checkName()
-    if name:
+    subExpression = checkSubExpression(parentTree)
+    if subExpression[0]:
+        if parseTreeInput[currentIndex] == "EXP":
+            currentIndex += 1
+            factor = checkFactor(subExpression[1])
+            if factor[0]:
+                parentTree = addToParentTree(factor[1], "Factor0")
+                return [True, parentTree]
+            currentIndex -= 1
+            return [False, False]
+        parentTree = addToParentTree(subExpression[1], "Factor1")
+        return [True, parentTree]
+    functionCall = checkFunctionCall(parentTree)
+    if functionCall[0]:
+        parentTree = addToParentTree(functionCall[1], "Factor2")
+        return [True, parentTree]
+    value = checkValue(parentTree)
+    if value[0]:
+        if parseTreeInput[currentIndex] == "EXP":
+            currentIndex += 1
+            factor = checkFactor(value[1])
+            if factor[0]:
+                parentTree = addToParentTree(factor[1], "Factor3")
+                return [True, parentTree]
+            currentIndex -= 1
+            return [False, False]
+        parentTree = addToParentTree(value[1], "Factor4")
+        return [True, parentTree]
+    return [False, False]
+
+
+def checkFunctionCall(parentTree):
+    global currentIndex
+    name = checkName(parentTree)
+    if name[0]:
         if parseTreeInput[currentIndex] == "LPAREN":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            functionCallParams = checkFunctionCallParams()
-            if functionCallParams:
+            functionCallParams = checkFunctionCallParams(name[1])
+            if functionCallParams[0]:
                 if parseTreeInput[currentIndex] == "COLON":
-                    addToParseTree(parseTreeInput[currentIndex])
                     currentIndex += 1
-                    number = checkNumber()
-                    if number:
-                        return True
+                    number = checkNumber(functionCallParams[1])
+                    if number[0]:
+                        parentTree = addToParentTree(number[1], "FunctionCall0")
+                        return [True, parentTree]
                     currentIndex -= 3
-                    return False
-                return True
+                    return [False, False]
+                parentTree = addToParentTree(functionCallParams[1], "FunctionCall1")
+                return [True, parentTree]
             currentIndex -= 2
-            return False
+            return [False, False]
         currentIndex -= 1
-        return False
-    return False
+        return [False, False]
+    return [False, False]
 
-def checkFunctionCallParams():
+
+def checkFunctionCallParams(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "RPAREN":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        return True
-    parameterList = checkParameterList()
-    if parameterList:
+        parentTree = addToParentTree(parentTree, "FunctionCallParams0")
+        return [True, parentTree]
+    parameterList = checkParameterList(parentTree)
+    if parameterList[0]:
         if parseTreeInput[currentIndex] == "RPAREN":
-            addToParseTree(parseTreeInput[currentIndex])
             currentIndex += 1
-            return True
-        return False
-    return False
+            parentTree = addToParentTree(parameterList[1], "FunctionCallParams1")
+            return [True, parentTree]
+        return [False, False]
+    return [False, False]
 
-def checkSubExpression():
+
+def checkSubExpression(parentTree):
     global currentIndex
     if parseTreeInput[currentIndex] == "LPAREN":
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        expression = checkExpression()
-        if expression:
+        expression = checkExpression(parentTree)
+        if expression[0]:
             if parseTreeInput[currentIndex] == "RPAREN":
-                addToParseTree(parseTreeInput[currentIndex])
                 currentIndex += 1
-                return True
+                parentTree = addToParentTree(expression[1], "SubExpression")
+                return [True, parentTree]
             currentIndex -= 1
-            return False
+            return [False, False]
         currentIndex -= 1
-        return False
-    return False
+        return [False, False]
+    return [False, False]
 
-def checkValue():
+
+def checkValue(parentTree):
     global currentIndex
-    name = checkName()
-    if name:
-        return True
-    number = checkNumber()
-    if number:
-        return True
-    return False
+    name = checkName(parentTree)
+    if name[0]:
+        parentTree = addToParentTree(name[1], "Value0")
+        return [True, parentTree]
+    number = checkNumber(parentTree)
+    if number[0]:
+        parentTree = addToParentTree(number[1], "Value1")
+        return [True, parentTree]
+    return [False, False]
 
-def checkName():
+
+def checkName(parentTree):
     global currentIndex
     ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
     if ident:
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        return True
-    if parseTreeInput == "SUB" or parseTreeInput == "ADD":
-        addToParseTree(parseTreeInput[currentIndex])
+        parentTree = addToParentTree(parentTree, "Name0", parseTreeInput[currentIndex])
+        return [True, parentTree]
+    if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
         if ident:
-            addToParseTree(parseTreeInput[currentIndex])
-            return True
+            currentIndex += 1
+            parentTree = addToParentTree(parentTree, "Name1", parseTreeInput[currentIndex])
+            return [True, parentTree]
         currentIndex -= 1
-        return False
-    return False
+        return [False, False]
+    return [False, False]
 
-def checkNumber():
+
+def checkNumber(parentTree):
     global currentIndex
     number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
     if number:
-        addToParseTree(parseTreeInput[currentIndex])
         currentIndex += 1
-        return True
-    if parseTreeInput == "SUB" or parseTreeInput == "ADD":
-        addToParseTree(parseTreeInput[currentIndex])
+        parentTree = addToParentTree(parentTree, "Number0", parseTreeInput[currentIndex])
+        return [True, parentTree]
+    if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
         if number:
-            addToParseTree(parseTreeInput[currentIndex])
-            return True
+            currentIndex += 1
+            parentTree = addToParentTree(parentTree, "Number1", parseTreeInput[currentIndex])
+            return [True, parentTree]
         currentIndex -= 1
-        return False
-    return False
+        return [False, False]
+    return [False, False]
+
 
 def ReadInput():
-    global output
+    global outputFinal
     tokens = sys.stdin.readlines()
 
     # loop through lines in quirk file
@@ -454,11 +450,12 @@ def ReadInput():
         y = x.replace("\n", "")
         parseTreeInput.append(y)
 
-    checkProgram()
+    output = checkProgram(outputFinal)
+    print(output[-1])
     if parseTreeInput[currentIndex] == "EOF":
-        print("Parsing OK")
+        print("\nParsing OK\n")
     else:
-        print("Error ->", parseTreeInput[currentIndex])
+        print("\nError\n")
 
 if __name__ == '__main__':
     ReadInput()
