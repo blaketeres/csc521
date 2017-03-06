@@ -78,6 +78,7 @@ def checkFunctionDeclaration(parentTree):
                                 parentTree = addToParentTree(functionBody[1], "Function Declaration")
                                 return [True, parentTree]
                             else:
+                                currentIndex -= 5
                                 return [False, False]
                         else:
                             currentIndex -= 4
