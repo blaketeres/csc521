@@ -8,11 +8,47 @@ outputFinal = []
 
 # append subtree to immediate parent tree upon function returning True
 # this will keep the order of the tree in tact, and eliminate incorrect leafs
-def addToParentTree(parentTree, item, item2 = None):
+
+'''
+How My Parser Works:
+
+Each function listed below traverses the grammar. Below are bits of code
+that I use throughout the program and a small explanation. I am outlining
+them here so that it is not repetitive and chunky to read throughout.
+
+global currentIndex:
+    This keeps the index position from getting caught in a local context.
+
+currentIndex (+-)= 1:
+    Manually maintaining the token position. Will be incremented and
+    decremented as needed, depending on the return values of the leaf
+    node function calls.
+
+grammarType = checkGrammarType(parentTree):
+    This function calls a child leaf in the grammar tree and returns a
+    list consisting of a boolean value and the existing tree of the function
+    that called it. This allows grammar to be checked, and the tree to maintain
+    itself as the code traverses along.
+
+if parseTreeInput[currentIndex] == "TOKEN":
+    This checks to see if the token literal is in its correct position for
+    the input quirk file to be accurate. If tokens are not found in their
+    correct location, the program is found to have an error.
+
+parentTree = addToParentTree(parentTree, "Return"):
+    This function adds the value to the AST for our output.
+    It is called relative to the position of the current node,
+    and will append in order of traversal, only appending when nodes are
+    returned as True.
+'''
+
+# This function handles tree formatting
+
+
+def addToParentTree(parentTree, item, item2=None):
     if item2 != None:
         if not parentTree:
             parentTree = [item, item2]
-
         else:
             parentTree = [item, item2, parentTree]
     else:
@@ -29,6 +65,8 @@ leafs and returning True upon success, and False upon failure.
 The program will exit if a possible path is not found before the
 parser reaches the end of the input file
 '''
+
+
 def checkProgram(parentTree):
     global currentIndex
     statement = checkStatement(parentTree)
@@ -75,26 +113,21 @@ def checkFunctionDeclaration(parentTree):
                         if functionBody[0]:
                             if parseTreeInput[currentIndex] == "RBRACE":
                                 currentIndex += 1
-                                parentTree = addToParentTree(functionBody[1], "Function Declaration")
+                                parentTree = addToParentTree(
+                                    functionBody[1], "Function Declaration", parseTreeInput[currentIndex - 8])
                                 return [True, parentTree]
-                            else:
-                                currentIndex -= 5
-                                return [False, False]
-                        else:
                             currentIndex -= 4
                             return [False, False]
-                    else:
-                        currentIndex -= 3
+                        currentIndex -= 4
                         return [False, False]
-                else:
                     currentIndex -= 3
                     return [False, False]
-            else:
-                currentIndex -= 2
+                currentIndex -= 3
                 return [False, False]
-        else:
-            currentIndex -= 1
+            currentIndex -= 2
             return [False, False]
+        currentIndex -= 1
+        return [False, False]
     return [False, False]
 
 
@@ -110,8 +143,7 @@ def checkFunctionParams(parentTree):
             currentIndex += 1
             parentTree = addToParentTree(nameList[1], "FunctionParams1")
             return [True, parentTree]
-        else:
-            return [False, False]
+        return [False, False]
     return [False, False]
 
 
@@ -127,8 +159,7 @@ def checkFunctionBody(parentTree):
         if xReturn[0]:
             parentTree = addToParentTree(xReturn[1], "FunctionBody1")
             return [True, parentTree]
-        else:
-            return [False, False]
+        return [False, False]
     return [False, False]
 
 
@@ -140,9 +171,8 @@ def checkReturn(parentTree):
         if parameterList[0]:
             parentTree = addToParentTree(parameterList[1], "Return")
             return [True, parentTree]
-        else:
-            currentIndex -= 1
-            return [False, False]
+        currentIndex -= 1
+        return [False, False]
     return [False, False]
 
 
@@ -169,17 +199,15 @@ def checkSingleAssignment(parentTree):
                 currentIndex += 1
                 expression = checkExpression(name[1])
                 if expression[0]:
-                    parentTree = addToParentTree(expression[1], "SingleAssignment")
+                    parentTree = addToParentTree(
+                        expression[1], "SingleAssignment")
                     return [True, parentTree]
-                else:
-                    currentIndex -= 3
-                    return [False, False]
-            else:
-                currentIndex -= 2
+                currentIndex -= 3
                 return [False, False]
-        else:
-            currentIndex -= 1
+            currentIndex -= 2
             return [False, False]
+        currentIndex -= 1
+        return [False, False]
     return [False, False]
 
 
@@ -193,7 +221,8 @@ def checkMultipleAssignment(parentTree):
                 currentIndex += 1
                 functionCall = checkFunctionCall(name[1])
                 if functionCall[0]:
-                    parentTree = addToParentTree(functionCall[1], "MultipleAssignment")
+                    parentTree = addToParentTree(
+                        functionCall[1], "MultipleAssignment")
                     return [True, parentTree]
                 currentIndex -= 3
                 return [False, False]
@@ -240,7 +269,8 @@ def checkParameterList(parentTree):
             currentIndex += 1
             parameterList = checkParameterList(parameter[1])
             if parameterList[0]:
-                parentTree = addToParentTree(parameterList[1], "ParameterList0")
+                parentTree = addToParentTree(
+                    parameterList[1], "ParameterList0")
                 return [True, parentTree]
             currentIndex -= 1
             return [False, False]
@@ -341,11 +371,13 @@ def checkFunctionCall(parentTree):
                     currentIndex += 1
                     number = checkNumber(functionCallParams[1])
                     if number[0]:
-                        parentTree = addToParentTree(number[1], "FunctionCall0")
+                        parentTree = addToParentTree(
+                            number[1], "FunctionCall0")
                         return [True, parentTree]
                     currentIndex -= 3
                     return [False, False]
-                parentTree = addToParentTree(functionCallParams[1], "FunctionCall1")
+                parentTree = addToParentTree(
+                    functionCallParams[1], "FunctionCall1")
                 return [True, parentTree]
             currentIndex -= 2
             return [False, False]
@@ -364,7 +396,8 @@ def checkFunctionCallParams(parentTree):
     if parameterList[0]:
         if parseTreeInput[currentIndex] == "RPAREN":
             currentIndex += 1
-            parentTree = addToParentTree(parameterList[1], "FunctionCallParams1")
+            parentTree = addToParentTree(
+                parameterList[1], "FunctionCallParams1")
             return [True, parentTree]
         return [False, False]
     return [False, False]
@@ -405,14 +438,16 @@ def checkName(parentTree):
     ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
     if ident:
         currentIndex += 1
-        parentTree = addToParentTree(parentTree, "Name0", parseTreeInput[currentIndex])
+        parentTree = addToParentTree(
+            parentTree, "Name0", parseTreeInput[currentIndex - 1])
         return [True, parentTree]
     if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
         if ident:
             currentIndex += 1
-            parentTree = addToParentTree(parentTree, "Name1", parseTreeInput[currentIndex])
+            parentTree = addToParentTree(
+                parentTree, "Name1", parseTreeInput[currentIndex - 1])
             return [True, parentTree]
         currentIndex -= 1
         return [False, False]
@@ -424,14 +459,16 @@ def checkNumber(parentTree):
     number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
     if number:
         currentIndex += 1
-        parentTree = addToParentTree(parentTree, "Number0", parseTreeInput[currentIndex])
+        parentTree = addToParentTree(
+            parentTree, "Number0", parseTreeInput[currentIndex - 1])
         return [True, parentTree]
     if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
         if number:
             currentIndex += 1
-            parentTree = addToParentTree(parentTree, "Number1", parseTreeInput[currentIndex])
+            parentTree = addToParentTree(
+                parentTree, "Number1", parseTreeInput[currentIndex - 1])
             return [True, parentTree]
         currentIndex -= 1
         return [False, False]
