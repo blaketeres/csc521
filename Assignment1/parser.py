@@ -33,6 +33,10 @@ if parseTreeInput[currentIndex] == "TOKEN":
     This checks to see if the token literal is in its correct position for
     the input quirk file to be accurate. If tokens are not found in their
     correct location, the program is found to have an error.
+
+subTree = [SUBTREE CONTENTS]
+    This creates the proper subtree to be returned if a branch is found
+    to be successful.
 '''
 
 '''
@@ -49,9 +53,9 @@ def checkProgram():
     if statement[0]:
         program = checkProgram()
         if program:
-            subTree = ["Program", statement[1], program[1]]
+            subTree = ["Program0", statement[1], program[1]]
             return subTree
-        subTree = ["Program", statement[1]]
+        subTree = ["Program1", statement[1]]
         return subTree
     return False
 
@@ -455,10 +459,9 @@ def ReadInput():
         y = x.replace("\n", "")
         parseTreeInput.append(y)
 
-    #output = checkProgram()
     serializedParseTree = json.dumps(checkProgram())
     if parseTreeInput[currentIndex] == "EOF":
-        print(serializedParseTree)
+        sys.stdout.write(serializedParseTree)
     else:
         exit()
 
