@@ -5,6 +5,25 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=1, depth=100)
 
+def lookupInScopeStack(name, scope):
+    '''Returns values (including declared functions!) from the scope.
+    name - A string value holding the name of a bound variable or function.
+    scope - The scope that holds names to value binding for variables and
+        functions.
+    returns - the value associated with the name in scope.
+    '''
+    #turn this on for better debugging
+    #print("lookup_in_scope_stack() "+ str(name))
+
+    if name in scope:
+        return scope[name]
+    else:
+        if "__parent__" in scope:
+            print("not found in scope. Looking at __parent__")
+            return lookup_in_scope_stack(name, scope["__parent__"])
+        else:
+            print("ERROR: variable " + name + " was not found in scope stack!")
+
 def getName(token):
     '''Returns the string lexeme associated with an IDENT token, tok.
     '''
@@ -52,6 +71,7 @@ def Statement2(parent, scope):
 
 # <FunctionDeclaration> -> FUNCTION <Name> LPAREN <FunctionParams> LBRACE <FunctionBody> RBRACE
 def FunctionDeclaration(parent, scope):
+    name = getName(parent[1][1])
     '''
     1. Get function name.
     2. Get names of parameters.
@@ -104,7 +124,9 @@ def MultipleAssignment(parent, scope):
 
 # <Print> -> PRINT <Expression>
 def Print(parent, scope):
-    pass
+    toOut = callFunction(parent[2][0], parent[-1], scope)
+    print(toOut)
+    return
 
 # <NameList> -> <Name> COMMA <NameList> | <Name>
 def NameList0(parent, scope):
@@ -132,41 +154,53 @@ def Parameter1(parent, scope):
 
 # <Expression> -> <Term> ADD <Expression> | <Term> SUB <Expression> | <Term>
 def Expression0(parent, scope):
-    pass
-
+    term = callFunction(parent[1][0], parent[1], scope)
+    operator = parent[2]
+    expression = callFunction(parent[3][0], parent[3], scope)
+    if operator == "ADD":
+        return term + expression
+    return term - expression
 
 def Expression1(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <Term> -> <Factor> MULT <Term> | <Factor> DIV <Term> | <Factor>
 def Term0(parent, scope):
-    pass
+    factor = callFunction(parent[1][0], parent[1], scope)
+    operator = parent[2]
+    term = callFunction(parent[3][0], parent[3], scope)
+    if operator == "MULT":
+        return factor * term
+    return factor / term
 
 
 def Term1(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <Factor> -> <SubExpression> EXP <Factor> | <SubExpression> | <FunctionCall> | <Value> EXP <Factor> | <Value>
 def Factor0(parent, scope):
-    pass
-
+    subExpression = callFunction(parent[1][0], parent[1], scope)
+    factor = callFunction(parent[3][0], parent[3], scope)
+    return subExpression ** factor
 
 def Factor1(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Factor2(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)[0]
 
 
 def Factor3(parent, scope):
-    pass
+    value = callFunction(parent[1][0], parent[1], scope)
+    factor = callFunction(parent[3][0], parent[3], scope)
+    return value ** factor
 
 
 def Factor4(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
 
-# <FunctionCall> ->  <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
+# <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
 def FunctionCall0(parent, scope):
     pass
 
@@ -184,39 +218,43 @@ def FunctionCallParams1(parent, scope):
 
 # <SubExpression> -> LPAREN <Expression> RPAREN
 def SubExpression(parent, scope):
-    pass
+    return callFunction(parent[2][0], parent[2], scope)
 
 # <Value> -> <Name> | <Number>
 def Value0(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Value1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <Name> -> IDENT | SUB IDENT | ADD IDENT
 def Name0(parent, scope):
-    pass
+    name = getName(parent[1])
+    return [lookupInScopeStack(name, scope), name]
 
 
 def Name1(parent, scope):
-    pass
+    name = getName(parent[2])
+    return [lookupInScopeStack(name, scope), name]
 
 # <Number> -> NUMBER | SUB NUMBER | ADD NUMBER
 def Number0(parent, scope):
-    pass
+    return getNumber(parent[1])
 
 
 def Number1(parent, scope):
-    pass
+    token = parent[1]
+    if token == "SUB":
+        return -getNumber(parent[2])
+    return
 
 
 def ReadInput():
     global outputFinal
     parserInput = sys.stdin.read()
-
     parseTree = json.loads(parserInput)
-    pp.pprint(parseTree)
+    #pp.pprint(parseTree)
 
     # use None as scope, as we are starting globally under Program
     callFunction(parseTree[0], parseTree, None)
