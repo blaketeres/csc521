@@ -48,12 +48,12 @@ def checkProgram():
     statement = checkStatement()
     if statement[0]:
         program = checkProgram()
-        if program[0]:
+        if program:
             subTree = ["Program", statement[1], program[1]]
-            return [True, subTree]
+            return subTree
         subTree = ["Program", statement[1]]
-        return [True, subTree]
-    return [False, False]
+        return subTree
+    return False
 
 
 def checkStatement():
