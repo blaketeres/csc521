@@ -1,6 +1,7 @@
 import sys
 import pprint
 import json
+import ast
 import pprint
 
 pp = pprint.PrettyPrinter(indent=1, depth=100)
@@ -32,10 +33,16 @@ def getName(token):
 
 
 def getNumber(token):
+    def tryeval(val):
+        try:
+            val = ast.literal_eval(val)
+        except ValueError:
+            pass
+        return val
     '''Returns the float lexeme associated with an NUMBER token, tok.
     '''
     colon_index = token.find(":")
-    return float(token[colon_index+1:])
+    return tryeval((token[colon_index+1:]))
 
 def raiseException(exception):
     raise Exception(exception)
