@@ -265,10 +265,16 @@ def Factor4(parent, scope):
 
 # <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
 def FunctionCall0(parent, scope):
-    name = getName(callFunction(parent[1][0], parent[1], scope))
+    name = getName(parent[1][1])
+    functionBody = scope[name][1]
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
-    number = callFunction(parent[5][0], parent[5], scope)
-    return [name, functionCallParams, number]
+    indexNumber = callFunction(parent[5][0], parent[5], scope)
+    newScope = {}
+    for i, item in enumerate(scope[name][0]):
+        variable = functionCallParams[i]
+        newScope[scope[name][0][i]] = variable
+    newScope[name] = scope[name]
+    return callFunction(newScope[name][1][0], newScope[name][1], newScope)[indexNumber]
 
 
 def FunctionCall1(parent, scope):
