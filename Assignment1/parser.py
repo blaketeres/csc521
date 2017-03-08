@@ -52,12 +52,12 @@ def checkProgram():
     statement = checkStatement()
     if statement[0]:
         program = checkProgram()
-        if program:
+        if program[0]:
             subTree = ["Program0", statement[1], program[1]]
-            return subTree
+            return[True, subTree]
         subTree = ["Program1", statement[1]]
-        return subTree
-    return False
+        return [True, subTree]
+    return [False, False]
 
 
 def checkStatement():
@@ -458,8 +458,8 @@ def ReadInput():
         # remove extraneous \n
         y = x.replace("\n", "")
         parseTreeInput.append(y)
-
-    serializedParseTree = json.dumps(checkProgram())
+        
+    serializedParseTree = json.dumps(checkProgram()[-1])
     if parseTreeInput[currentIndex] == "EOF":
         sys.stdout.write(serializedParseTree)
     else:

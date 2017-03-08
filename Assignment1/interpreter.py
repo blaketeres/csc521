@@ -5,6 +5,22 @@ import ast
 import pprint
 
 pp = pprint.PrettyPrinter(indent=1, depth=100)
+'''
+def findNumOfReturnValues(functionBody):
+    def count(body):
+        print (len(body))
+        if isinstance(body, list):
+            print("OK")
+            for i in body:
+                print(i, "\n")
+                if i == "COMMA":
+                    print("found")
+            count(body[1])
+
+    countReturn = 0
+    count(functionBody)
+    return countReturn
+'''
 
 def lookupInScopeStack(name, scope):
     '''Returns values (including declared functions!) from the scope.
@@ -15,15 +31,15 @@ def lookupInScopeStack(name, scope):
     '''
     #turn this on for better debugging
     #print("lookup_in_scope_stack() "+ str(name))
-
     if name in scope:
         return scope[name]
     else:
         if "__parent__" in scope:
-            print("not found in scope. Looking at __parent__")
             return lookup_in_scope_stack(name, scope["__parent__"])
         else:
-            print("ERROR: variable " + name + " was not found in scope stack!")
+            return None
+        #else:
+        #    print("ERROR: variable " + name + " was not found in scope stack!")
 
 def getName(token):
     '''Returns the string lexeme associated with an IDENT token, tok.
@@ -78,7 +94,13 @@ def Statement2(parent, scope):
 
 # <FunctionDeclaration> -> FUNCTION <Name> LPAREN <FunctionParams> LBRACE <FunctionBody> RBRACE
 def FunctionDeclaration(parent, scope):
-    name = getName(parent[1][1])
+    functionName = getName(parent[2][1])
+    functionParams = (callFunction(parent[4][0], parent[4], scope))
+    if functionParams:
+        functionParams = functionParams[1::2]
+    functionBody = parent[6]
+    #returnLength = findNumOfReturnValues(functionBody)
+    scope[functionName] = [functionParams, functionBody]
     '''
     1. Get function name.
     2. Get names of parameters.
@@ -94,70 +116,89 @@ def FunctionDeclaration(parent, scope):
 
 # <FunctionParams> -> RPAREN | <NameList> RPAREN
 def FunctionParams0(parent, scope):
-    pass
+    return
 
 
 def FunctionParams1(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
+
 
 # <FunctionBody> -> <Return> | <Program> <Return>
 def FunctionBody0(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def FunctionBody1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
-    callFunction(parent[2][0], parent[2], scope)
+    program = callFunction(parent[1][0], parent[1], scope)
+    xReturn = callFunction(parent[2][0], parent[2], scope)
+    return [program, xReturn]
 
 # <Return> -> RETURN <ParameterList>
 def Return(parent, scope):
-    pass
+    return callFunction(parent[2][0], parent[2], scope)
 
 # <Assignment> -> <SingleAssignment> | <MultipleAssignment>
 def Assignment0(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Assignment1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <SingleAssignment> -> VAR <Name> ASSIGN <Expression>
 def SingleAssignment(parent, scope):
-    pass
+    name = callFunction(parent[2][0], parent[2], scope)[-1]
+    '''
+    if lookupInScopeStack(name, scope) == scope[name]:
+        raiseException("Name", name, "already exists.")
+        exit()
+    '''
+    expression = callFunction(parent[4][0], parent[4], scope)
+    scope[name] = expression
+    return
 
 # <MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
 def MultipleAssignment(parent, scope):
-    pass
+    nameList = callFunction(parent[2][0], parent[2], scope)
+    functionCall = callFunction(parent[4][0], parent[4], scope)
+    return [nameList, functionCall]
 
 # <Print> -> PRINT <Expression>
 def Print(parent, scope):
-    toOut = callFunction(parent[2][0], parent[-1], scope)
-    print(toOut)
+    expression = callFunction(parent[2][0], parent[-1], scope)
+    #print(expression)
+    try:
+        print(expression[0])
+    except:
+        print(expression)
     return
 
 # <NameList> -> <Name> COMMA <NameList> | <Name>
 def NameList0(parent, scope):
-    pass
+    n1 = callFunction(parent[1][0], parent[1], scope)
+    n2 = callFunction(parent[3][0], parent[3], scope)
+    return n1 + n2
 
 
 def NameList1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <ParameterList> -> <Parameter> COMMA <ParameterList> | <Parameter>
 def ParameterList0(parent, scope):
-    pass
-
+    p1 = callFunction(parent[1][0], parent[1], scope)
+    p2 = callFunction(parent[3][0], parent[3], scope)
+    return [p1, p2]
 
 def ParameterList1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <Parameter> -> <Expression> | <Name>
 def Parameter0(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Parameter1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <Expression> -> <Term> ADD <Expression> | <Term> SUB <Expression> | <Term>
 def Expression0(parent, scope):
@@ -165,8 +206,14 @@ def Expression0(parent, scope):
     operator = parent[2]
     expression = callFunction(parent[3][0], parent[3], scope)
     if operator == "ADD":
-        return term + expression
-    return term - expression
+        try:
+            return term[0] + expression
+        except:
+            return term + expression
+    try:
+        return term[0] - expression
+    except:
+        return term - expression
 
 def Expression1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
@@ -176,9 +223,17 @@ def Term0(parent, scope):
     factor = callFunction(parent[1][0], parent[1], scope)
     operator = parent[2]
     term = callFunction(parent[3][0], parent[3], scope)
+    print (factor)
+    print(term)
     if operator == "MULT":
-        return factor * term
-    return factor / term
+        try:
+            return factor[0] * term
+        except:
+            return factor * term
+    try:
+        return factor[0] / term
+    except:
+        return factor / term
 
 
 def Term1(parent, scope):
@@ -195,7 +250,7 @@ def Factor1(parent, scope):
 
 
 def Factor2(parent, scope):
-    return callFunction(parent[1][0], parent[1], scope)[0]
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Factor3(parent, scope):
@@ -209,19 +264,31 @@ def Factor4(parent, scope):
 
 # <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
 def FunctionCall0(parent, scope):
-    pass
+    name = getName(callFunction(parent[1][0], parent[1], scope))
+    functionCallParams = callFunction(parent[3][0], parent[3], scope)
+    number = callFunction(parent[5][0], parent[5], scope)
+    return [name, functionCallParams, number]
 
 
 def FunctionCall1(parent, scope):
-    pass
+    name = getName(parent[1][1])
+    functionBody = scope[name][1]
+    newScope = scope
+    functionCallParams = callFunction(parent[3][0], parent[3], scope)
+    if functionCallParams:
+        for i in range(len(functionCallParams)):
+            functionCallParams[i] = functionCallParams[i][0]
+    newScope[name] = [functionCallParams, functionBody]
+    #print(callFunction(newScope[name][1][0], newScope[name][1], newScope))
+    return callFunction(newScope[name][1][0], newScope[name][1], newScope)
 
-# <FunctionCallParams> ->  <ParameterList> RPAREN | RPAREN
+# <FunctionCallParams> -> RPAREN | <ParameterList> RPAREN
 def FunctionCallParams0(parent, scope):
-    pass
+    return
 
 
 def FunctionCallParams1(parent, scope):
-    pass
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <SubExpression> -> LPAREN <Expression> RPAREN
 def SubExpression(parent, scope):
@@ -242,6 +309,7 @@ def Name0(parent, scope):
 
 
 def Name1(parent, scope):
+    operator = parent[1]
     name = getName(parent[2])
     return [lookupInScopeStack(name, scope), name]
 
@@ -261,10 +329,13 @@ def ReadInput():
     global outputFinal
     parserInput = sys.stdin.read()
     parseTree = json.loads(parserInput)
-    #pp.pprint(parseTree)
+    print()
+    pp.pprint(parseTree)
+    print()
 
-    # use None as scope, as we are starting globally under Program
-    callFunction(parseTree[0], parseTree, None)
+    # use empty scope, as we are starting globally under Program
+    callFunction(parseTree[0], parseTree, {})
+    print()
 
 if __name__ == '__main__':
     ReadInput()
