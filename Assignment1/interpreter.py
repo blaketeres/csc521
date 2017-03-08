@@ -159,9 +159,36 @@ def SingleAssignment(parent, scope):
 
 # <MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
 def MultipleAssignment(parent, scope):
-    nameList = callFunction(parent[2][0], parent[2], scope)
+    """
+    This function converts a nested list of paramaters
+    to a single-depth list of function paramaters
+    """
+    def unNestList(paramList, out):
+        if len(paramList) > 1:
+            for item in paramList:
+                if not isinstance(item, list):
+                    out.append(item)
+                else:
+                    unNestList(item, out)
+        return out
+
+    nameList = callFunction(parent[2][0], parent[2], scope)[1::2]
     functionCall = callFunction(parent[4][0], parent[4], scope)
-    return [nameList, functionCall]
+    returnValues = unNestList(functionCall, [])
+    """
+    Check to see if variable is already in scope
+    """
+    for i in range(len(nameList)):
+        if nameList[i] in scope.keys():
+            errorMessage = "Variable " + "'" + str(nameList[i]) + "'" " is already defined"
+            raiseException(errorMessage)
+    if len(nameList) > len(returnValues):
+        raiseException("Invalid # of return values")
+    if len(nameList) < len(returnValues):
+        raiseException("Invalid # of variables to assign")
+    for i, item in enumerate(returnValues):
+            scope[nameList[i]] = returnValues[i]
+    return functionCall
 
 # <Print> -> PRINT <Expression>
 def Print(parent, scope):
@@ -183,13 +210,6 @@ def NameList1(parent, scope):
 def ParameterList0(parent, scope):
     p1 = callFunction(parent[1][0], parent[1], scope)
     p2 = callFunction(parent[3][0], parent[3], scope)
-    '''
-    out = [p1, p2]
-    if len(out) > 1:
-        if isinstance(p2, list):
-            out = p2
-            p2.insert(0, p1)
-    '''
     return [p1, p2]
 
 def ParameterList1(parent, scope):
