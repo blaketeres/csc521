@@ -131,7 +131,7 @@ def FunctionBody0(parent, scope):
 def FunctionBody1(parent, scope):
     program = callFunction(parent[1][0], parent[1], scope)
     xReturn = callFunction(parent[2][0], parent[2], scope)
-    return [program, xReturn]
+    return xReturn
 
 # <Return> -> RETURN <ParameterList>
 def Return(parent, scope):
@@ -166,11 +166,7 @@ def MultipleAssignment(parent, scope):
 # <Print> -> PRINT <Expression>
 def Print(parent, scope):
     expression = callFunction(parent[2][0], parent[-1], scope)
-    #print(expression)
-    try:
-        print(expression[0])
-    except:
-        print(expression)
+    print(expression)
     return
 
 # <NameList> -> <Name> COMMA <NameList> | <Name>
@@ -187,6 +183,13 @@ def NameList1(parent, scope):
 def ParameterList0(parent, scope):
     p1 = callFunction(parent[1][0], parent[1], scope)
     p2 = callFunction(parent[3][0], parent[3], scope)
+    '''
+    out = [p1, p2]
+    if len(out) > 1:
+        if isinstance(p2, list):
+            out = p2
+            p2.insert(0, p1)
+    '''
     return [p1, p2]
 
 def ParameterList1(parent, scope):
@@ -223,8 +226,6 @@ def Term0(parent, scope):
     factor = callFunction(parent[1][0], parent[1], scope)
     operator = parent[2]
     term = callFunction(parent[3][0], parent[3], scope)
-    print (factor)
-    print(term)
     if operator == "MULT":
         try:
             return factor[0] * term
@@ -273,22 +274,35 @@ def FunctionCall0(parent, scope):
 def FunctionCall1(parent, scope):
     name = getName(parent[1][1])
     functionBody = scope[name][1]
-    newScope = scope
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
-    if functionCallParams:
-        for i in range(len(functionCallParams)):
-            functionCallParams[i] = functionCallParams[i][0]
-    newScope[name] = [functionCallParams, functionBody]
-    #print(callFunction(newScope[name][1][0], newScope[name][1], newScope))
+    newScope = {}
+    for i, item in enumerate(scope[name][0]):
+        variable = functionCallParams[i]
+        newScope[scope[name][0][i]] = variable
+    newScope[name] = scope[name]
     return callFunction(newScope[name][1][0], newScope[name][1], newScope)
 
 # <FunctionCallParams> -> RPAREN | <ParameterList> RPAREN
 def FunctionCallParams0(parent, scope):
-    return
-
+    return []
 
 def FunctionCallParams1(parent, scope):
-    return callFunction(parent[1][0], parent[1], scope)
+    """
+    This function converts a nested list of paramaters
+    to a single-depth list of function paramaters
+    """
+    def unNestList(paramList, out):
+        if len(paramList) > 1:
+            for item in paramList:
+                if not isinstance(item, list):
+                    out.append(item)
+                else:
+                    unNestList(item, out)
+        return out
+
+    params = callFunction(parent[1][0], parent[1], scope)
+    paramsOut = unNestList(params, [])
+    return paramsOut
 
 # <SubExpression> -> LPAREN <Expression> RPAREN
 def SubExpression(parent, scope):
@@ -296,11 +310,12 @@ def SubExpression(parent, scope):
 
 # <Value> -> <Name> | <Number>
 def Value0(parent, scope):
-    return callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)[0]
 
 
 def Value1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
+
 
 # <Name> -> IDENT | SUB IDENT | ADD IDENT
 def Name0(parent, scope):
@@ -329,13 +344,13 @@ def ReadInput():
     global outputFinal
     parserInput = sys.stdin.read()
     parseTree = json.loads(parserInput)
-    print()
-    pp.pprint(parseTree)
-    print()
+    #print()
+    #pp.pprint(parseTree)
+    #print()
 
     # use empty scope, as we are starting globally under Program
     callFunction(parseTree[0], parseTree, {})
-    print()
+    #print()
 
 if __name__ == '__main__':
     ReadInput()
