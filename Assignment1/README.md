@@ -21,30 +21,6 @@ For the interpreter, all of the information we need to know is in the AST that w
 Quirk Grammar Tree as displayed on class repo:
 
 
-<Program> -> <Statement> <Program> | <Statement>
-<Statement> -> <FunctionDeclaration> | <Assignment> | <Print>
-<FunctionDeclaration> -> FUNCTION <Name> LPAREN <FunctionParams> LBRACE <FunctionBody> RBRACE
-<FunctionParams> -> <NameList> RPAREN | RPAREN
-<FunctionBody> -> <Program> <Return> | <Return>
-<Return> -> RETURN <ParameterList>
-<Assignment> -> <SingleAssignment> | <MultipleAssignment>
-<SingleAssignment> -> VAR <Name> ASSIGN <Expression>
-<MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
-<Print> -> PRINT <Expression>
-<NameList> -> <Name> COMMA <NameList> | <Name>
-<ParameterList> -> <Parameter> COMMA <ParameterList> | <Parameter>
-<Parameter> -> <Expression> | <Name>
-<Expression> -> <Term> ADD <Expression> | <Term> SUB <Expression> | <Term>
-<Term> -> <Factor> MULT <Term> | <Factor> DIV <Term> | <Factor>
-<Factor> -> <SubExpression> EXP <Factor> | <SubExpression> | <FunctionCall> | <Value> EXP <Factor> | <Value>
-<FunctionCall> ->  <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
-<FunctionCallParams> ->  <ParameterList> RPAREN | RPAREN
-<SubExpression> -> LPAREN <Expression> RPAREN
-<Value> -> <Name> | <Number>
-<Name> -> IDENT | SUB IDENT | ADD IDENT
-<Number> -> NUMBER | SUB NUMBER | ADD NUMBER
-
-
 Changes I made and why:
 
 <FunctionParams> -> <NameList> RPAREN | RPAREN
