@@ -24,15 +24,21 @@ Quirk Grammar Tree as displayed on class repo:
 Changes I made and why:
 
 < FunctionParams > -> < NameList > RPAREN | RPAREN
+
 to
+
 < FunctionParams > -> RPAREN | < NameList > RPAREN
 
 < FunctionBody> -> < Program > < Return > | < Return >
+
 to
+
 < FunctionBody> -> < Return > | < Program > < Return >
 
 < FunctionCallParams> -> < ParameterList > RPAREN | RPAREN
+
 to
+
 < FunctionCallParams > -> RPAREN | < ParameterList > RPAREN
 
 Both of these grammar trees follow similar patterns. Above, their second branch is short and simple, and should be checked first. In the case that they are checked first and returned False, there is little harm done, as checking for a “RPAREN” token or a Return statement is shorter than checking for NameLists and Programs.
