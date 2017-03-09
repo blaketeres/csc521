@@ -154,6 +154,9 @@ def SingleAssignment(parent, scope):
         exit()
     '''
     expression = callFunction(parent[4][0], parent[4], scope)
+    if isinstance(expression, list):
+        scope[name] = expression[0]
+        return
     scope[name] = expression
     return
 
@@ -164,12 +167,11 @@ def MultipleAssignment(parent, scope):
     to a single-depth list of function paramaters
     """
     def unNestList(paramList, out):
-        if len(paramList) > 1:
-            for item in paramList:
-                if not isinstance(item, list):
-                    out.append(item)
-                else:
-                    unNestList(item, out)
+        for item in paramList:
+            if isinstance(item, list):
+                unNestList(paramList[1], out)
+            else:
+                out.append(item)
         return out
 
     nameList = callFunction(parent[2][0], parent[2], scope)[1::2]
@@ -187,12 +189,17 @@ def MultipleAssignment(parent, scope):
     if len(nameList) < len(returnValues):
         raiseException("Invalid # of variables to assign")
     for i, item in enumerate(returnValues):
-            scope[nameList[i]] = returnValues[i]
+        scope[nameList[i]] = returnValues[i]
     return functionCall
 
 # <Print> -> PRINT <Expression>
 def Print(parent, scope):
     expression = callFunction(parent[2][0], parent[-1], scope)
+    if expression == None:
+        errorMessage = "Cannot print undefined variable " + "'" + getName(parent[2][1][1][1][1][1]) + "'"
+        raiseException(errorMessage)
+
+    """Prints the output using the python print() function"""
     print(expression)
     return
 
@@ -285,22 +292,62 @@ def Factor4(parent, scope):
 
 # <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
 def FunctionCall0(parent, scope):
+    """This function converts a nested list of paramaters
+    to a single-depth list of function paramaters
+    """
+    def unNestList(paramList, out):
+        if len(paramList) > 1:
+            for item in paramList:
+                if not isinstance(item, list):
+                    out.append(item)
+                else:
+                    unNestList(item, out)
+        return out
+
+    """Get function name"""
     name = getName(parent[1][1])
+
+    """Get function body"""
     functionBody = scope[name][1]
+
+    """Get function paramaters"""
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
+
+    """Get total number of paramaters needed for function"""
+    numRequiredParams = len(scope[name][0])
+
+    """Raise exception if invalid # of params"""
+    if len(functionCallParams) != numRequiredParams:
+        raiseException("Incorrect number of function paramaters")
+
+    """Get indexed number"""
     indexNumber = callFunction(parent[5][0], parent[5], scope)
     newScope = {}
+    numVariables = 0
     for i, item in enumerate(scope[name][0]):
         variable = functionCallParams[i]
         newScope[scope[name][0][i]] = variable
+        numVariables += 1
+    if indexNumber > numVariables:
+        raiseException("Index out of range")
     newScope[name] = scope[name]
-    return callFunction(newScope[name][1][0], newScope[name][1], newScope)[indexNumber]
+    nestedReturnValues = callFunction(newScope[name][1][0], newScope[name][1], newScope)
+    output = unNestList(nestedReturnValues, [])[indexNumber]
+    if not isinstance(output, list):
+        finalOutput = []
+        for i in range(numVariables):
+            finalOutput.append(output)
+        return finalOutput
+    return output
 
 
 def FunctionCall1(parent, scope):
     name = getName(parent[1][1])
     functionBody = scope[name][1]
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
+    numRequiredParams = len(scope[name][0])
+    if len(functionCallParams) != numRequiredParams:
+        raiseException("Incorrect number of function paramaters")
     newScope = {}
     for i, item in enumerate(scope[name][0]):
         variable = functionCallParams[i]
@@ -327,8 +374,10 @@ def FunctionCallParams1(parent, scope):
         return out
 
     params = callFunction(parent[1][0], parent[1], scope)
-    paramsOut = unNestList(params, [])
-    return paramsOut
+    if isinstance(params, list):
+        params = unNestList(params, [])
+        return params
+    return [params]
 
 # <SubExpression> -> LPAREN <Expression> RPAREN
 def SubExpression(parent, scope):
@@ -336,7 +385,11 @@ def SubExpression(parent, scope):
 
 # <Value> -> <Name> | <Number>
 def Value0(parent, scope):
-    return callFunction(parent[1][0], parent[1], scope)[0]
+    value = callFunction(parent[1][0], parent[1], scope)
+    if value[0] == None:
+        errorMessage = "Undefined variable " + "'" + value[1] + "'"
+        raiseException(errorMessage)
+    return value[0]
 
 
 def Value1(parent, scope):
