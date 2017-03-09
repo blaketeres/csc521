@@ -423,13 +423,9 @@ def ReadInput():
     global outputFinal
     parserInput = sys.stdin.read()
     parseTree = json.loads(parserInput)
-    #print()
-    #pp.pprint(parseTree)
-    #print()
 
     # use empty scope, as we are starting globally under Program
     callFunction(parseTree[0], parseTree, {})
-    #print()
 
 if __name__ == '__main__':
     ReadInput()
