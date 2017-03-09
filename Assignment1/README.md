@@ -25,7 +25,7 @@ All you have to do is type:
 
     python3 teresInterpreter.py
     
-and it will do all the work for you. However, this has only been tested on my system, and results may be different depending on the system.
+and it will do all the work for you. However, this has only been tested on my system, and results may be different depending on the system. If you would like to bypass this,
 
 You can also type:
 
