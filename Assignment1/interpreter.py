@@ -2,25 +2,6 @@ import sys
 import pprint
 import json
 import ast
-import pprint
-
-pp = pprint.PrettyPrinter(indent=1, depth=100)
-'''
-def findNumOfReturnValues(functionBody):
-    def count(body):
-        print (len(body))
-        if isinstance(body, list):
-            print("OK")
-            for i in body:
-                print(i, "\n")
-                if i == "COMMA":
-                    print("found")
-            count(body[1])
-
-    countReturn = 0
-    count(functionBody)
-    return countReturn
-'''
 
 def lookupInScopeStack(name, scope):
     '''Returns values (including declared functions!) from the scope.
@@ -38,8 +19,6 @@ def lookupInScopeStack(name, scope):
             return lookup_in_scope_stack(name, scope["__parent__"])
         else:
             return None
-        #else:
-        #    print("ERROR: variable " + name + " was not found in scope stack!")
 
 def getName(token):
     '''Returns the string lexeme associated with an IDENT token, tok.
@@ -49,22 +28,29 @@ def getName(token):
 
 
 def getNumber(token):
+    '''
+    Returns the right type of number so that
+    everything is not defaulted to a float
+    '''
     def tryeval(val):
         try:
             val = ast.literal_eval(val)
         except ValueError:
             pass
         return val
-    '''Returns the float lexeme associated with an NUMBER token, tok.
-    '''
+
     colon_index = token.find(":")
     return tryeval((token[colon_index+1:]))
 
 def raiseException(exception):
+    '''custom error raising function
+    '''
     raise Exception(exception)
 
 
 def callFunction(*args):
+    '''calls a global function based on its name and scope
+    '''
     name = args[0]
     parent = args[1]
     scope = args[2]
@@ -82,37 +68,33 @@ def Program1(parent, scope):
 
 # <Statement> -> <FunctionDeclaration> | <Assignment> | <Print>
 def Statement0(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Statement1(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 
 def Statement2(parent, scope):
-    callFunction(parent[1][0], parent[1], scope)
+    return callFunction(parent[1][0], parent[1], scope)
 
 # <FunctionDeclaration> -> FUNCTION <Name> LPAREN <FunctionParams> LBRACE <FunctionBody> RBRACE
 def FunctionDeclaration(parent, scope):
+    # Get the function name
     functionName = getName(parent[2][1])
+
+    # get names of parameters
     functionParams = (callFunction(parent[4][0], parent[4], scope))
+
+    # remove extraneous information in list
     if functionParams:
         functionParams = functionParams[1::2]
+
+    # get function body
     functionBody = parent[6]
-    #returnLength = findNumOfReturnValues(functionBody)
+
+    # bind function to scope
     scope[functionName] = [functionParams, functionBody]
-    '''
-    1. Get function name.
-    2. Get names of parameters.
-    3. Get reference to function body subtree.
-    4. In scope, bind the function's name to the following list:
-        "foo": [['p1', 'p2', 'p3'], [FunctionBodySubtree]]
-        where foo is the function names, p1, p2, p2 are the parameters and
-        FunctionBodySubtree represents the partial parse tree that holds the
-        FunctionBody0 expansion. This would correspond to the following code:
-        function foo(p1, p2, p3) { [the function body] }
-    #Bonus: check for return value length at declaration time
-    '''
 
 # <FunctionParams> -> RPAREN | <NameList> RPAREN
 def FunctionParams0(parent, scope):
@@ -129,7 +111,10 @@ def FunctionBody0(parent, scope):
 
 
 def FunctionBody1(parent, scope):
+    # run the thing that needs to be returned
     program = callFunction(parent[1][0], parent[1], scope)
+
+    # get the return value
     xReturn = callFunction(parent[2][0], parent[2], scope)
     return xReturn
 
@@ -148,11 +133,13 @@ def Assignment1(parent, scope):
 # <SingleAssignment> -> VAR <Name> ASSIGN <Expression>
 def SingleAssignment(parent, scope):
     name = callFunction(parent[2][0], parent[2], scope)[-1]
-    '''
-    if lookupInScopeStack(name, scope) == scope[name]:
-        raiseException("Name", name, "already exists.")
-        exit()
-    '''
+    # checks is variable has already been declared
+    if name in scope:
+        if lookupInScopeStack(name, scope) == scope[name]:
+            x = str(name)
+            errorMessage = "Variable " + x + " cannot be redefined"
+            raise Exception(errorMessage)
+
     expression = callFunction(parent[4][0], parent[4], scope)
     if isinstance(expression, list):
         scope[name] = expression[0]
@@ -162,10 +149,9 @@ def SingleAssignment(parent, scope):
 
 # <MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
 def MultipleAssignment(parent, scope):
-    """
-    This function converts a nested list of paramaters
+    '''This function converts a nested list of paramaters
     to a single-depth list of function paramaters
-    """
+    '''
     def unNestList(paramList, out):
         for item in paramList:
             if isinstance(item, list):
@@ -177,9 +163,11 @@ def MultipleAssignment(parent, scope):
     nameList = callFunction(parent[2][0], parent[2], scope)[1::2]
     functionCall = callFunction(parent[4][0], parent[4], scope)
     returnValues = unNestList(functionCall, [])
-    """
+
+    '''
     Check to see if variable is already in scope
-    """
+    and other various error checking
+    '''
     for i in range(len(nameList)):
         if nameList[i] in scope.keys():
             errorMessage = "Variable " + "'" + str(nameList[i]) + "'" " is already defined"
@@ -199,7 +187,8 @@ def Print(parent, scope):
         errorMessage = "Cannot print undefined variable " + "'" + getName(parent[2][1][1][1][1][1]) + "'"
         raiseException(errorMessage)
 
-    """Prints the output using the python print() function"""
+    '''Prints the output using the python print() function
+    '''
     print(expression)
     return
 
@@ -292,9 +281,9 @@ def Factor4(parent, scope):
 
 # <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
 def FunctionCall0(parent, scope):
-    """This function converts a nested list of paramaters
+    '''This function converts a nested list of paramaters
     to a single-depth list of function paramaters
-    """
+    '''
     def unNestList(paramList, out):
         if len(paramList) > 1:
             for item in paramList:
@@ -304,25 +293,29 @@ def FunctionCall0(parent, scope):
                     unNestList(item, out)
         return out
 
-    """Get function name"""
+    '''Get function name'''
     name = getName(parent[1][1])
 
-    """Get function body"""
+    '''Get function body'''
     functionBody = scope[name][1]
 
-    """Get function paramaters"""
+    '''Get function paramaters'''
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
 
-    """Get total number of paramaters needed for function"""
+    '''Get total number of paramaters needed for function'''
     numRequiredParams = len(scope[name][0])
 
-    """Raise exception if invalid # of params"""
+    '''Raise exception if invalid # of params'''
     if len(functionCallParams) != numRequiredParams:
         raiseException("Incorrect number of function paramaters")
 
-    """Get indexed number"""
+    '''Get indexed number'''
     indexNumber = callFunction(parent[5][0], parent[5], scope)
+
+    '''Creat New Scope'''
     newScope = {}
+
+    '''Find number of required variables'''
     numVariables = 0
     for i, item in enumerate(scope[name][0]):
         variable = functionCallParams[i]
@@ -345,13 +338,17 @@ def FunctionCall1(parent, scope):
     name = getName(parent[1][1])
     functionBody = scope[name][1]
     functionCallParams = callFunction(parent[3][0], parent[3], scope)
-    numRequiredParams = len(scope[name][0])
+    if scope[name][0] == None:
+        numRequiredParams = 0
+    else:
+        numRequiredParams = len(scope[name][0])
     if len(functionCallParams) != numRequiredParams:
         raiseException("Incorrect number of function paramaters")
     newScope = {}
-    for i, item in enumerate(scope[name][0]):
-        variable = functionCallParams[i]
-        newScope[scope[name][0][i]] = variable
+    if scope[name][0] != None:
+        for i, item in enumerate(scope[name][0]):
+            variable = functionCallParams[i]
+            newScope[scope[name][0][i]] = variable
     newScope[name] = scope[name]
     return callFunction(newScope[name][1][0], newScope[name][1], newScope)
 
@@ -360,10 +357,9 @@ def FunctionCallParams0(parent, scope):
     return []
 
 def FunctionCallParams1(parent, scope):
-    """
-    This function converts a nested list of paramaters
+    '''This function converts a nested list of paramaters
     to a single-depth list of function paramaters
-    """
+    '''
     def unNestList(paramList, out):
         if len(paramList) > 1:
             for item in paramList:

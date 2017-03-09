@@ -8,12 +8,12 @@ currentIndex = 0
 # append subtree to immediate parent tree upon function returning True
 # this will keep the order of the tree in tact, and eliminate incorrect leafs
 
-'''
-How My Parser Works:
+""" How My Parser Works:
 
 Each function listed below traverses the grammar. Below are bits of code
 that I use throughout the program and a small explanation. I am outlining
 them here so that comments are not repetitive and chunky to read throughout.
+Everything in the code that is important is found here.
 
 global currentIndex:
     This keeps the index position from getting caught in a local context.
@@ -37,15 +37,15 @@ if parseTreeInput[currentIndex] == "TOKEN":
 subTree = [SUBTREE CONTENTS]
     This creates the proper subtree to be returned if a branch is found
     to be successful.
-'''
 
-'''
+
+
 The main parsing functions are found below. All decision making is handled below for each piece of
 grammar. Every function below follows the same format, checking possible
 leafs and returning True upon success, and False upon failure.
 The program will exit if a possible path is not found before the
 parser reaches the end of the input file
-'''
+"""
 
 def checkProgram():
     global currentIndex
@@ -458,7 +458,7 @@ def ReadInput():
         # remove extraneous \n
         y = x.replace("\n", "")
         parseTreeInput.append(y)
-        
+
     serializedParseTree = json.dumps(checkProgram()[-1])
     if parseTreeInput[currentIndex] == "EOF":
         sys.stdout.write(serializedParseTree)

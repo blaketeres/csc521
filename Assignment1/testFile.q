@@ -17,6 +17,10 @@ function multipleReturn(a, b, c) {
   return a, b, c, d
 }
 
+function negativeStuff() {
+  return 8 * -9
+}
+
 
 var a = 5
 var b = -2.1234
@@ -45,6 +49,8 @@ var aa, bb, cc, dd = multipleReturn(1, 2, 3)
 
 var indexedReturn = multipleReturn(5, 6, 9):3
 
+var negative = negativeStuff()
+
 
 print distance1
 print distance2
@@ -58,3 +64,4 @@ print cc
 print dd
 print multipleReturnNoIndex
 print indexedReturn
+print negative
