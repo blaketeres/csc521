@@ -189,6 +189,8 @@ def Print(parent, scope):
 
     '''Prints the output using the python print() function
     '''
+    if isinstance(expression, list):
+        expression = expression[0]
     print(expression)
     return
 
@@ -269,12 +271,10 @@ def Factor1(parent, scope):
 def Factor2(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
-
 def Factor3(parent, scope):
     value = callFunction(parent[1][0], parent[1], scope)
     factor = callFunction(parent[3][0], parent[3], scope)
     return value ** factor
-
 
 def Factor4(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
