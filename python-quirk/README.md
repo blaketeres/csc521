@@ -16,7 +16,9 @@ The parser is much more complex. It is built from recursive functions, each of w
 
 For the interpreter, all of the information we need to know is in the AST that was given to us by the parser. It tells us where to go, when to do it, and what information we need. If the AST is correct, the interpreter should be able to traverse the tree to return and output the information at the correct time. The big thing to watch for in the interpreter is the scope. Although quirk is a simple language, it still upholds the properties of global and local scope, the norm found in most programming languages today.
 
-## Changes I Made to the Grammar:
+## Changes I Made:
+
+### Grammar:
 
 Quirk Grammar Tree as displayed on class repo:
 
@@ -46,6 +48,9 @@ to
 < FunctionCallParams > -> RPAREN | < ParameterList > RPAREN
 
 Both of these grammar trees follow similar patterns. Above, their second branch is short and simple, and should be checked first. In the case that they are checked first and returned False, there is little harm done, as checking for a “RPAREN” token or a Return statement is shorter than checking for NameLists and Programs.
+
+### Interpreter:
+I added a number handling functionality that handles the right type of number, instead of casting everything to a float by default.
 
 ## Running my Interpreter:
 
