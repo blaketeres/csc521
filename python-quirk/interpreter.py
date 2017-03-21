@@ -29,8 +29,8 @@ def getName(token):
 
 def getNumber(token):
     '''
-    Returns the right type of number so that
-    everything is not defaulted to a float
+    Attempts to return the right data type for numbes
+    so that everything is not defaulted to a float
     '''
     def tryeval(val):
         try:
@@ -321,8 +321,6 @@ def FunctionCall0(parent, scope):
         variable = functionCallParams[i]
         newScope[scope[name][0][i]] = variable
         numVariables += 1
-    if indexNumber > numVariables:
-        raiseException("Index out of range")
     newScope[name] = scope[name]
     nestedReturnValues = callFunction(newScope[name][1][0], newScope[name][1], newScope)
     output = unNestList(nestedReturnValues, [])[indexNumber]
@@ -401,7 +399,10 @@ def Name0(parent, scope):
 def Name1(parent, scope):
     operator = parent[1]
     name = getName(parent[2])
-    return [lookupInScopeStack(name, scope), name]
+    if operator == "SUB":
+        return [-lookupInScopeStack(name, scope), name]
+    if operator == "ADD":
+        return [lookupInScopeStack(name, scope), name]
 
 # <Number> -> NUMBER | SUB NUMBER | ADD NUMBER
 def Number0(parent, scope):
@@ -412,7 +413,8 @@ def Number1(parent, scope):
     token = parent[1]
     if token == "SUB":
         return -getNumber(parent[2])
-    return
+    else:
+        return getNumber(parent[2])
 
 
 def ReadInput():

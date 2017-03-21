@@ -1,6 +1,8 @@
 import sys
 import re
 import json
+import pprint
+pp = pprint.PrettyPrinter(indent=1, depth=100)
 
 parseTreeInput = []
 currentIndex = 0
@@ -95,15 +97,15 @@ def checkFunctionDeclaration():
                                 currentIndex += 1
                                 subTree = ["FunctionDeclaration", "FUNCTION", name[1], "LPAREN", functionParams[1], "LBRACE", functionBody[1], "RBRACE"]
                                 return [True, subTree]
-                            currentIndex -= 4
+                            currentIndex -= (name[2] + 3)
                             return [False, False]
-                        currentIndex -= 4
+                        currentIndex -= (name[2] + 3)
                         return [False, False]
-                    currentIndex -= 3
+                    currentIndex -= (name[2] + 2)
                     return [False, False]
-                currentIndex -= 3
+                currentIndex -= (name[2] + 2)
                 return [False, False]
-            currentIndex -= 2
+            currentIndex -= (name[2] + 1)
             return [False, False]
         currentIndex -= 1
         return [False, False]
@@ -180,9 +182,9 @@ def checkSingleAssignment():
                 if expression[0]:
                     subTree = ["SingleAssignment", "VAR", name[1], "ASSIGN", expression[1]]
                     return [True, subTree]
-                currentIndex -= 3
+                currentIndex -= (name[2] + 2)
                 return [False, False]
-            currentIndex -= 2
+            currentIndex -= (name[2] + 1)
             return [False, False]
         currentIndex -= 1
         return [False, False]
@@ -231,7 +233,7 @@ def checkNameList():
             if nameList[0]:
                 subTree = ["NameList0", name[1], "COMMA", nameList[1]]
                 return [True, subTree]
-            currentIndex -= 2
+            currentIndex -= (name[2] + 1)
             return [False, False]
         subTree = ["NameList1", name[1]]
         return [True, subTree]
@@ -351,13 +353,13 @@ def checkFunctionCall():
                     if number[0]:
                         subTree = ["FunctionCall0", name[1], "LPAREN", functionCallParams[1], "COLON", number[1]]
                         return [True, subTree]
-                    currentIndex -= 3
+                    currentIndex -= (name[2] + 2)
                     return [False, False]
                 subTree = ["FunctionCall1", name[1], "LPAREN", functionCallParams[1]]
                 return [True, subTree]
-            currentIndex -= 2
+            currentIndex -= (name[2] + 1)
             return [False, False]
-        currentIndex -= 1
+        currentIndex -= (name[2])
         return [False, False]
     return [False, False]
 
@@ -414,14 +416,14 @@ def checkName():
     if ident:
         subTree = ["Name0", parseTreeInput[currentIndex]]
         currentIndex += 1
-        return [True, subTree]
+        return [True, subTree, 1]
     if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         ident = re.match("IDENT:.+", parseTreeInput[currentIndex])
         if ident:
-            subTree = ["Name0", parseTreeInput[currentIndex - 1], parseTreeInput[currentIndex]]
+            subTree = ["Name1", parseTreeInput[currentIndex - 1], parseTreeInput[currentIndex]]
             currentIndex += 1
-            return [True, subTree]
+            return [True, subTree, 2]
         currentIndex -= 1
         return [False, False]
     return [False, False]
@@ -433,14 +435,14 @@ def checkNumber():
     if number:
         subTree = ["Number0", parseTreeInput[currentIndex]]
         currentIndex += 1
-        return [True, subTree]
+        return [True, subTree, 1]
     if parseTreeInput[currentIndex] == "SUB" or parseTreeInput[currentIndex] == "ADD":
         currentIndex += 1
         number = re.match("NUMBER:.+", parseTreeInput[currentIndex])
         if number:
             subTree = ["Number1", parseTreeInput[currentIndex - 1], parseTreeInput[currentIndex]]
             currentIndex += 1
-            return [True, subTree]
+            return [True, subTree, 2]
         currentIndex -= 1
         return [False, False]
     return [False, False]
@@ -459,6 +461,8 @@ def ReadInput():
         y = x.replace("\n", "")
         parseTreeInput.append(y)
 
+    #serializedParseTree = checkProgram()[-1]
+    #pp.pprint(serializedParseTree)
     serializedParseTree = json.dumps(checkProgram()[-1])
     if parseTreeInput[currentIndex] == "EOF":
         sys.stdout.write(serializedParseTree)
