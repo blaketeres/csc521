@@ -49,6 +49,7 @@ The program will exit if a possible path is not found before the
 parser reaches the end of the input file
 """
 
+
 def checkProgram():
     global currentIndex
     statement = checkStatement()
@@ -462,7 +463,7 @@ def ReadInput():
         parseTreeInput.append(y)
 
     #serializedParseTree = checkProgram()[-1]
-    #pp.pprint(serializedParseTree)
+    # pp.pprint(serializedParseTree)
     serializedParseTree = json.dumps(checkProgram()[-1])
     if parseTreeInput[currentIndex] == "EOF":
         sys.stdout.write(serializedParseTree)

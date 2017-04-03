@@ -1,6 +1,7 @@
 import sys
 import re
 
+
 def ReadInput():
     # get input from quirk file
     lines = sys.stdin.readlines()
@@ -10,7 +11,7 @@ def ReadInput():
 
         # convert input from line to standard python string
         x = str(line)
-        
+
         # find keywords in grammar
         y = re.findall("var |function |return |print |=|\+|\-|\*|/|\^|\(|\)|\{|\}|,|:|[+-]?\d+(?:\.\d+)?|[a-zA-Z]+[a-zA-Z0-9_]*", x)
 
