@@ -20,9 +20,6 @@ For the interpreter, all of the information we need to know is in the AST that w
 
 ### Grammar:
 
-Quirk Grammar Tree as displayed on class repo:
-
-
 Changes I made and why:
 
 < FunctionParams > -> < NameList > RPAREN | RPAREN
@@ -68,7 +65,7 @@ You can also type:
     
 ## Known issues
 
-I tried to catch all of the possible errors and throw exceptions for them. However, some may have slipped through, and may see a totally useless error in your command line if you have a syntax error.
+I tried to catch all of the possible errors and throw exceptions for them. However, some may have slipped through, and you may see a totally useless error in your command line related to JSON if you have a syntax error.
 
 Specific code comments are found in the .py files, relative to the exact code it describes.
 
