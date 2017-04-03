@@ -20,9 +20,6 @@ For the interpreter, all of the information we need to know is in the AST that w
 
 ### Grammar:
 
-Quirk Grammar Tree as displayed on class repo:
-
-
 Changes I made and why:
 
 < FunctionParams > -> < NameList > RPAREN | RPAREN
