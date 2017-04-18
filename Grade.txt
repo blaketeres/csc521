@@ -1,0 +1,42 @@
+Lexer - 30/30
+
+  Example 1 CORRECTLY LEXED
+  Example 2 CORRECTLY LEXED
+  Example 3 CORRECTLY LEXED
+  Example 4 CORRECTLY LEXED
+  Example 5 CORRECTLY LEXED
+
+Parser: 30/30
+
+Example 1 CORRECTLY PARSED
+Example 2 CORRECTLY PARSED
+Example 3 CORRECTLY PARSED
+Example 4 CORRECTLY PARSED
+Example 5 CORRECTLY PARSED
+
+Interpreter: 20/20
+
+  Example 1 was interpreted almost correctly given the specs.
+    The issue came when the type of
+    example 1's output came into play. There shouldn't be any ints in the quirk
+    language.
+  Example 2 CORRECTLY INTERPRETED
+  Example 3 had the same issue as example 1.
+  Example 4 had the same issue as example 1.
+  Example 5 had the same issue as example 1.
+
+  There were no points marked down for this because you explained why you made
+  these changes. This warning just comes into the realm of "what is the specifications
+  vs what could be better" when programming for projects like this.
+
+Style: 20/20
+
+  While there were some warnings that were not in scope of what could be missed,
+  they were too far and few in between to cause any serious point reduction.
+
+  The readme is truly the most amazing part. Thank you for the wonderful
+  communciation and explanations on changes within your code. If those were not
+  there then points would have been detracted, but you have given a very clear
+  and insightful explanation.
+
+  Fantastic job!
