@@ -1,0 +1,2 @@
+cmdhistory=["(foo 4)" "exit" "(exit)" "(System/exit 0)" "(. System exit 0)" "(+ 1 4 5)" "(-main)" "(Num 3 4)" "(Num)" "(quirkParseTree)" "(println quirkParseTree)"]
+eclipse.preferences.version=1
