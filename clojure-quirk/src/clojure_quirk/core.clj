@@ -76,12 +76,11 @@
     (second subtree)
     
     ; FunctionParams1
-    :default
-    ([])))
+    ; ---------------
+    ))
 
 (defn FunctionBody [subtree scope]
   (println "FUNCTIONBODY")
-  (println (first (second subtree)))
   (cond
     
     ; FunctionBody0
@@ -103,18 +102,18 @@
 
 (defn SingleAssignment [subtree scope]
   (println "SINGLEASSIGNMENT")
-  (pprint subtree)
-  (println (first (fifth subtree)))
   (def varName (second (second (third subtree))))
-  (def varValue (first (fifth subtree)))
+  (def varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope))
   (setValue varName varValue))
 
 (defn MultipleAssignment [subtree scope]
   (println "MULTIPLEASSIGNMENT")
-  (print subtree))
+  (pprint subtree))
 
 (defn Print [subtree scope]
-  (println "Print"))
+  (println "PRINT")
+  (def valToPrint (callByLabel (first (third subtree)) (third subtree) scope))
+  (println valToPrint))
 
 (defn NameList [subtree scope]
   (println "NameList"))
@@ -126,7 +125,7 @@
   (println "Parameter"))
 
 (defn Expression [subtree scope]
-  (println "Expression"))
+  (println "EXPRESSION"))
 
 (defn Term [subtree scope]
   (println "Term"))
