@@ -46,7 +46,7 @@
   (cond
     
 		; Program0 (<Statement> <Program>)
-		(= :Program (first (third subtree)))
+		(= (count subtree) 3)
 		((callByLabel (first (second subtree)) (second subtree) scope)
 		  (callByLabel (first (third subtree)) (third subtree) scope))
   
@@ -56,19 +56,9 @@
 
 (defn Statement [subtree scope]
   (println "STATEMENT")
-	(cond
-	    
-		; Statement0 (<FunctionDeclaration>)
-		(= :FunctionDeclaration (first (second subtree)))
-		(callByLabel (first (second subtree)) (second subtree) scope)
-		    
-		; Statement1 (<Assignment>)
-		(= :Assignment (first (second subtree)))
-		(callByLabel (first (second subtree)) (second subtree) scope)
-		  
-		; Statement2 (<Print>)
-		:default
-		(callByLabel (first (second subtree)) (second subtree) scope)))
+  
+  ; Statement0/1/2
+	(callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn FunctionDeclaration [subtree scope]
   (println "FUNCTIONDECLARATION")
@@ -91,26 +81,37 @@
 
 (defn FunctionBody [subtree scope]
   (println "FUNCTIONBODY")
+  (println (first (second subtree)))
   (cond
     
     ; FunctionBody0
-    (not= :Return (first (second subtree)))
+    (= :Program (first (second subtree)))
+    ((callByLabel (first (second subtree)) (second subtree) scope)
+		  (callByLabel (first (third subtree)) (third subtree) scope))
     
     ; FunctionBody1
     :default
-    ))
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Return [subtree scope]
-  (println "RETURN"))
+  (println "RETURN")
+  (callByLabel (first (third subtree)) (third subtree) scope))
 
 (defn Assignment [subtree scope]
-  (println "ASSIGNMENT"))
+  (println "ASSIGNMENT")
+  (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn SingleAssignment [subtree scope]
-  (println "SingleAssignment"))
+  (println "SINGLEASSIGNMENT")
+  (pprint subtree)
+  (println (first (fifth subtree)))
+  (def varName (second (second (third subtree))))
+  (def varValue (first (fifth subtree)))
+  (setValue varName varValue))
 
 (defn MultipleAssignment [subtree scope]
-  (println "MultipleAssignment"))
+  (println "MULTIPLEASSIGNMENT")
+  (print subtree))
 
 (defn Print [subtree scope]
   (println "Print"))
