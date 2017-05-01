@@ -180,10 +180,11 @@
     ((let [term (callByLabel (first (second subtree)) (second subtree) scope)]
        (let [expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
 	     (cond
-			     (= :ADD (first (third subtree)))
-           (double (+ term expression))
-           (= :SUB (first (third subtree)))
-           (double (- term expression))))))
+			   (= :ADD (first (third subtree)))
+         (+ term expression)
+           
+         (= :SUB (first (third subtree)))
+         (- term expression)))))
       
     ; Expression2 (Term)
     :default
@@ -216,7 +217,7 @@
       (cond
       
         ; Factor0 (SubExpression EXP Factor)
-        (= count (subtree 4))
+        (= (count subtree) 4)
         (let [factor (callByLabel (first (second (second (third (second subtree)))))
                                          (second (second (third (second subtree)))) scope)]
           (exp subExpression factor))
@@ -234,14 +235,14 @@
       (cond
        
         ; Factor3 (Value EXP Factor)
-        (= count (subtree 4))
+        (= (count subtree) 4)
         (let [factor (callByLabel (first (second (second (third (second subtree)))))
                                          (second (second (third (second subtree)))) scope)]
           (exp value factor))
        
         ; Factor4 (Value)
         :default
-        (value)))))
+        (double value)))))
 
 (defn FunctionCall [subtree scope]
   (println "FUNCTIONCALL"))
@@ -265,31 +266,49 @@
 
 (defn Value [subtree scope]
   (println "VALUE")
-  (pprint subtree)
     
   ; Value0/1 (Name/Number)
-  (callByFunction (first (second subtree)) (second subtree)))
+  (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn Name [subtree scope]
   (println "NAME")
+  (pprint subtree)
   (cond
     
     ; Name0 (IDENT)
     (= :IDENT (first (second subtree)))
+    (double (checkTable (second (second subtree))))
     
     :default
     (cond
       
       ; Name1 (SUB IDENT)
-      (= :SUB 1)
+      (= :SUB (first (second subtree)))
+      (* -1.0 (double (checkTable (second (third subtree)))))
       
       ; Name2 (ADD IDENT)
-      (= :ADD 1)
-      )
-    )
+      (= :ADD (first (second subtree)))
+      (double (checkTable (second (third subtree)))))))
 
-(defn Num [subtree scope]
-  (println "NUMBER"))
+(defn Numb [subtree scope]
+  (println "NUMBER")
+  (pprint subtree)
+  (cond
+    
+    ; Number0 (NUMBER)
+    (= :NUMBER (first (second subtree)))
+    (double (read-string (second (second subtree))))
+    
+    :default
+    (cond
+      
+      ; Number1 (SUB NUMBER)
+      (= :SUB (first (second subtree)))
+      (* -1.0 (double (read-string (second (third subtree)))))
+      
+      ; Number2 (ADD NUMBER)
+      (= :ADD (first (second subtree)))
+      (double (read-string (second (third subtree)))))))
 
 (defn -main [& args]
   (def quirk (insta/parser (clojure.java.io/resource "quirkGrammar.ebnf") :auto-whitespace :standard))
