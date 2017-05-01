@@ -77,23 +77,21 @@
 (defn FunctionDeclaration [subtree scope]
   (println "FUNCTIONDECLARATION")
   (let [funcName (second (second (third subtree)))]
-    (let [funcParams (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
-      (let [funcBody (callByLabel (first (seventh subtree)) (seventh subtree) scope)]
-        (assoc scope (varBindLoop funcParams funcBody))
-        (println scope)))))
-        ;(setValue funcName (list funcParams funcBody))))))
+    (let [funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))]
+      (let [funcBody (seventh subtree)]
+        (setValue funcName [funcParams funcBody])))))
 
 (defn FunctionParams [subtree scope]
   (println "FUNCTIONPARAMS")
   (cond
     
-    ; FunctionParams0
+    ; FunctionParams0 (NameList RPAREN)
     (= :NameList (first (second subtree)))
-    (second subtree)
+    (callByLabel (first (second subtree)) (second subtree) scope)
     
-    ; FunctionParams1
-    ; Do nothing
-    ))
+    ; FunctionParams1 (RPAREN)
+    :default
+    []))
 
 (defn FunctionBody [subtree scope]
   (println "FUNCTIONBODY")
@@ -118,14 +116,17 @@
 
 (defn SingleAssignment [subtree scope]
   (println "SINGLEASSIGNMENT")
+  (pprint subtree)
   (let [varName (second (second (third subtree)))]
+    (println "varName:" varName)
     (let [varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
+      (println "varValue:" varValue)
       (setValue varName varValue)
       {(keyword varName) (checkTable varName)})))
 
 (defn MultipleAssignment [subtree scope]
   (println "MULTIPLEASSIGNMENT")
-  (let [varNames (second (second (third subtree)))]
+  (let [varNames (second (second (third subtree)))] 
     (let [varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)])))
       ;(let [i 0] (take (count varNames)
                        ;(iterate (inc i (setValue (nth varName i) (nth varValues i)))))))))
@@ -134,7 +135,7 @@
 (defn Print [subtree scope]
   (println "PRINT")
   (let [valToPrint (callByLabel (first (third subtree)) (third subtree) scope)]
-    (println valToPrint)))
+    (println "valToPrint: " valToPrint)))
 
 (defn NameList [subtree scope]
   (println "NAMELIST")
@@ -142,23 +143,21 @@
     
     ; NameList0 (Name COMMA NameList)
     (= (count subtree) 4)
-    ((let [n1 (callByLabel (first (second subtree)) (second subtree) scope)]
-       (let [n2 (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-         (into [] (concat n1 n2)))))
+    (into [] (concat (callByLabel (first (second subtree)) (second subtree) scope)
+                     (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
     
     ; NameList1 (Name)
     :default
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn ParameterList [subtree scope]
-  (println "PARAMATERLIST")
+  (println "PARAMETERLIST")
   (cond
     
     ; ParameterList0 (Parameter COMMA ParameterList)
     (= (count subtree) 4)
-    ((let [p1 (callByLabel (first (second subtree)) (second subtree) scope)]
-       (let [p2 (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-         (into [] (concat p1 p2)))))
+    (into [] (concat (callByLabel (first (second subtree)) (second subtree) scope)
+                     (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
     
     ; ParameterList1 (Parameter)
     :default
@@ -179,12 +178,13 @@
     (= (count subtree) 4)
     ((let [term (callByLabel (first (second subtree)) (second subtree) scope)]
        (let [expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-	     (cond
-			   (= :ADD (first (third subtree)))
-         (+ term expression)
+         (cond
            
-         (= :SUB (first (third subtree)))
-         (- term expression)))))
+	         (= :ADD (first (third subtree)))
+	         (+ term expression)
+	
+	         (= :SUB (first (third subtree)))
+	         (- term expression)))))
       
     ; Expression2 (Term)
     :default
@@ -199,8 +199,10 @@
     ((let [factor (callByLabel (first (second subtree)) (second subtree) scope)]
        (let [term (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
 	     (cond
+        
 			     (= :MULT (first (third subtree)))
            (* factor term)
+           
            (= :DIV (first (third subtree)))
            (double (/ factor term))))))
       
@@ -222,9 +224,9 @@
                                          (second (second (third (second subtree)))) scope)]
           (exp subExpression factor))
     
-	     ; Factor1 (SubExpression)
-	     :default
-	     (subExpression)))
+        ; Factor1 (SubExpression)
+        :default
+        subExpression))
    
     ; Factor2 (FunctionCall)
     (= :FunctionCall (first (second subtree)))
@@ -237,15 +239,30 @@
         ; Factor3 (Value EXP Factor)
         (= (count subtree) 4)
         (let [factor (callByLabel (first (second (second (third (second subtree)))))
-                                         (second (second (third (second subtree)))) scope)]
+                                  (second (second (third (second subtree)))) scope)]
           (exp value factor))
        
         ; Factor4 (Value)
         :default
-        (double value)))))
+        value))))
 
 (defn FunctionCall [subtree scope]
-  (println "FUNCTIONCALL"))
+  (println "FUNCTIONCALL")
+  (pprint subtree)
+  (cond
+    
+    ; FunctionCall0 (Name LPAREN FunctionCallParams COLON Numb)
+    (= (count subtree) 6)
+    ((let [funcName (second (second (second subtree)))]
+       (println "funcName: " funcName)
+       (println (count (checkTable funcName)))
+       (let [funcBody (checkTable funcName)]
+         (println "hehe:")
+         (pprint funcBody))))
+         
+    
+    :default
+    []))
 
 (defn FunctionCallParams [subtree scope]
   (println "FUNCTIONCALLPARAMS")
@@ -253,10 +270,11 @@
     
     ; FunctionCallParams0 (ParameterList RPAREN)
     (= :ParameterList (first (second subtree)))
-    (callByLabel (first (second subtree)) (second subtree) scope)))
+    (callByLabel (first (second subtree)) (second subtree) scope)
     
     ; FunctionCallParams0 (RPAREN)
-    ; Do nothing
+    :default
+    []))
 
 (defn SubExpression [subtree scope]
   (println "SUBEXPRESSION")
@@ -272,19 +290,18 @@
 
 (defn Name [subtree scope]
   (println "NAME")
-  (pprint subtree)
   (cond
     
     ; Name0 (IDENT)
     (= :IDENT (first (second subtree)))
-    (double (checkTable (second (second subtree))))
+    (checkTable (second (second subtree)))
     
     :default
     (cond
       
       ; Name1 (SUB IDENT)
       (= :SUB (first (second subtree)))
-      (* -1.0 (double (checkTable (second (third subtree)))))
+      (- (double (checkTable (second (third subtree)))))
       
       ; Name2 (ADD IDENT)
       (= :ADD (first (second subtree)))
@@ -292,7 +309,6 @@
 
 (defn Numb [subtree scope]
   (println "NUMBER")
-  (pprint subtree)
   (cond
     
     ; Number0 (NUMBER)
@@ -304,7 +320,7 @@
       
       ; Number1 (SUB NUMBER)
       (= :SUB (first (second subtree)))
-      (* -1.0 (double (read-string (second (third subtree)))))
+      (- (double (read-string (second (third subtree)))))
       
       ; Number2 (ADD NUMBER)
       (= :ADD (first (second subtree)))
