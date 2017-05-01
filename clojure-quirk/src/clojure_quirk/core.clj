@@ -17,6 +17,20 @@
       (get @symbolTable variable) 
       varitem)))
 
+(defn exp
+  "exponent of x^n (int n only), with tail recursion and O(logn)"
+   [x n]
+   (if (< n 0)
+     (/ 1 (exp x (- n)))
+     (loop [acc 1
+            base x
+            pow n]
+       (if (= pow 0)
+         acc                           
+         (if (even? pow)
+           (recur acc (* base base) (/ pow 2))
+           (recur  (* acc base) base (dec pow)))))))
+
 ; easy access functions
 (defn third [aList] (nth aList 2))
 (defn fourth [aList] (nth aList 3))
@@ -167,34 +181,112 @@
        (let [expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
 	     (cond
 			     (= :ADD (first (third subtree)))
-           (+ term expression)
+           (double (+ term expression))
            (= :SUB (first (third subtree)))
-           (- term expression)))))
+           (double (- term expression))))))
       
-    ; Expression2
+    ; Expression2 (Term)
     :default
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Term [subtree scope]
-  (println "TERM"))
+  (println "TERM")
+  (cond
+    
+    ; Term0/1 (Factor MULT Term/Factor DIV Term)
+    (= (count subtree) 4)
+    ((let [factor (callByLabel (first (second subtree)) (second subtree) scope)]
+       (let [term (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+	     (cond
+			     (= :MULT (first (third subtree)))
+           (* factor term)
+           (= :DIV (first (third subtree)))
+           (double (/ factor term))))))
+      
+    ; Term2 (Factor)
+    :default
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Factor [subtree scope]
-  (println "FACTOR"))
+  (println "FACTOR")
+  (cond
+
+    (= :SubExpression (first (second subtree)))
+    (let [subExpression (callByLabel (first (second subtree)) (second subtree) scope)]
+      (cond
+      
+        ; Factor0 (SubExpression EXP Factor)
+        (= count (subtree 4))
+        (let [factor (callByLabel (first (second (second (third (second subtree)))))
+                                         (second (second (third (second subtree)))) scope)]
+          (exp subExpression factor))
+    
+	     ; Factor1 (SubExpression)
+	     :default
+	     (subExpression)))
+   
+    ; Factor2 (FunctionCall)
+    (= :FunctionCall (first (second subtree)))
+    (callByLabel (first (second subtree)))
+   
+    :default
+    (let [value (callByLabel (first (second subtree)) (second subtree) scope)]
+      (cond
+       
+        ; Factor3 (Value EXP Factor)
+        (= count (subtree 4))
+        (let [factor (callByLabel (first (second (second (third (second subtree)))))
+                                         (second (second (third (second subtree)))) scope)]
+          (exp value factor))
+       
+        ; Factor4 (Value)
+        :default
+        (value)))))
 
 (defn FunctionCall [subtree scope]
   (println "FUNCTIONCALL"))
 
 (defn FunctionCallParams [subtree scope]
-  (println "FUNCTIONCALLPARAMS"))
+  (println "FUNCTIONCALLPARAMS")
+  (cond
+    
+    ; FunctionCallParams0 (ParameterList RPAREN)
+    (= :ParameterList (first (second subtree)))
+    (callByLabel (first (second subtree)) (second subtree) scope)))
+    
+    ; FunctionCallParams0 (RPAREN)
+    ; Do nothing
 
 (defn SubExpression [subtree scope]
-  (println "SUBEXPRESSION"))
+  (println "SUBEXPRESSION")
+  
+  ; SubExpression0 (LPAREN Expression RPAREN)
+  (callByLabel (first (third subtree)) (third subtree) scope))
 
 (defn Value [subtree scope]
-  (println "VALUE"))
+  (println "VALUE")
+  (pprint subtree)
+    
+  ; Value0/1 (Name/Number)
+  (callByFunction (first (second subtree)) (second subtree)))
 
 (defn Name [subtree scope]
-  (println "NAME"))
+  (println "NAME")
+  (cond
+    
+    ; Name0 (IDENT)
+    (= :IDENT (first (second subtree)))
+    
+    :default
+    (cond
+      
+      ; Name1 (SUB IDENT)
+      (= :SUB 1)
+      
+      ; Name2 (ADD IDENT)
+      (= :ADD 1)
+      )
+    )
 
 (defn Num [subtree scope]
   (println "NUMBER"))
