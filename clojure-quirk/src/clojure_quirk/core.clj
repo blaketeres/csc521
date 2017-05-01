@@ -39,7 +39,7 @@
   (apply (ns-resolve 'clojure-quirk.core (symbol (name label))) args))
 
 (defn interpretQuirk [subtree]
-  (callByLabel (first subtree) subtree {}))
+  (callByLabel (first subtree) subtree symbolTable))
 
 (defn Program [subtree scope]
   (println "PROGRAM")
@@ -62,10 +62,12 @@
 
 (defn FunctionDeclaration [subtree scope]
   (println "FUNCTIONDECLARATION")
-  (def funcName (second (second (third subtree))))
-  (def funcParams (callByLabel (first (fifth subtree)) (fifth subtree) scope))
-  (def funcBody (callByLabel (first (seventh subtree)) (seventh subtree) scope))
-  (setValue funcName (list funcParams funcBody)))
+  (let [funcName (second (second (third subtree)))]
+    (let [funcParams (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
+      (let [funcBody (callByLabel (first (seventh subtree)) (seventh subtree) scope)]
+        (assoc scope (varBindLoop funcParams funcBody))
+        (println scope)))))
+        ;(setValue funcName (list funcParams funcBody))))))
 
 (defn FunctionParams [subtree scope]
   (println "FUNCTIONPARAMS")
@@ -76,7 +78,7 @@
     (second subtree)
     
     ; FunctionParams1
-    ; ---------------
+    ; Do nothing
     ))
 
 (defn FunctionBody [subtree scope]
@@ -102,54 +104,100 @@
 
 (defn SingleAssignment [subtree scope]
   (println "SINGLEASSIGNMENT")
-  (def varName (second (second (third subtree))))
-  (def varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope))
-  (setValue varName varValue))
+  (let [varName (second (second (third subtree)))]
+    (let [varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
+      (setValue varName varValue)
+      {(keyword varName) (checkTable varName)})))
 
 (defn MultipleAssignment [subtree scope]
   (println "MULTIPLEASSIGNMENT")
-  (pprint subtree))
+  (let [varNames (second (second (third subtree)))]
+    (let [varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)])))
+      ;(let [i 0] (take (count varNames)
+                       ;(iterate (inc i (setValue (nth varName i) (nth varValues i)))))))))
+    ;{(keyword varName) (checkTable varName)}))
 
 (defn Print [subtree scope]
   (println "PRINT")
-  (def valToPrint (callByLabel (first (third subtree)) (third subtree) scope))
-  (println valToPrint))
+  (let [valToPrint (callByLabel (first (third subtree)) (third subtree) scope)]
+    (println valToPrint)))
 
 (defn NameList [subtree scope]
-  (println "NameList"))
+  (println "NAMELIST")
+  (cond
+    
+    ; NameList0 (Name COMMA NameList)
+    (= (count subtree) 4)
+    ((let [n1 (callByLabel (first (second subtree)) (second subtree) scope)]
+       (let [n2 (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+         (into [] (concat n1 n2)))))
+    
+    ; NameList1 (Name)
+    :default
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn ParameterList [subtree scope]
-  (println "ParameterList"))
+  (println "PARAMATERLIST")
+  (cond
+    
+    ; ParameterList0 (Parameter COMMA ParameterList)
+    (= (count subtree) 4)
+    ((let [p1 (callByLabel (first (second subtree)) (second subtree) scope)]
+       (let [p2 (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+         (into [] (concat p1 p2)))))
+    
+    ; ParameterList1 (Parameter)
+    :default
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Parameter [subtree scope]
-  (println "Parameter"))
+  (println "PARAMETER")
+    
+  ; Parameter0/1 (Expression/Name)
+  (= :Expression 1)
+  (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn Expression [subtree scope]
-  (println "EXPRESSION"))
+  (println "EXPRESSION")
+  (cond
+    
+    ; Expression0/1 (Term ADD Expression/Term SUB Expression)
+    (= (count subtree) 4)
+    ((let [term (callByLabel (first (second subtree)) (second subtree) scope)]
+       (let [expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+	     (cond
+			     (= :ADD (first (third subtree)))
+           (+ term expression)
+           (= :SUB (first (third subtree)))
+           (- term expression)))))
+      
+    ; Expression2
+    :default
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Term [subtree scope]
-  (println "Term"))
+  (println "TERM"))
 
 (defn Factor [subtree scope]
-  (println "Factor"))
+  (println "FACTOR"))
 
 (defn FunctionCall [subtree scope]
-  (println "FunctionCall"))
+  (println "FUNCTIONCALL"))
 
 (defn FunctionCallParams [subtree scope]
-  (println "FunctionCallParams"))
+  (println "FUNCTIONCALLPARAMS"))
 
 (defn SubExpression [subtree scope]
-  (println "SubExpression"))
+  (println "SUBEXPRESSION"))
 
 (defn Value [subtree scope]
-  (println "Value"))
+  (println "VALUE"))
 
 (defn Name [subtree scope]
-  (println "Name"))
+  (println "NAME"))
 
 (defn Num [subtree scope]
-  (println "Number"))
+  (println "NUMBER"))
 
 (defn -main [& args]
   (def quirk (insta/parser (clojure.java.io/resource "quirkGrammar.ebnf") :auto-whitespace :standard))
