@@ -71,15 +71,15 @@
 (defn Statement [subtree scope]
   (println "STATEMENT")
   
-  ; Statement0/1/2
+  ; Statement0/1/2 (FunctionDeclaration | Assignment | Print)
 	(callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn FunctionDeclaration [subtree scope]
   (println "FUNCTIONDECLARATION")
-  (let [funcName (second (second (third subtree)))]
-    (let [funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))]
-      (let [funcBody (seventh subtree)]
-        (setValue funcName [funcParams funcBody])))))
+  (let [funcName (second (second (third subtree)))
+        funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))
+        funcBody (seventh subtree)]
+        (setValue funcName [funcParams funcBody])))
 
 (defn FunctionParams [subtree scope]
   (println "FUNCTIONPARAMS")
@@ -117,17 +117,17 @@
 (defn SingleAssignment [subtree scope]
   (println "SINGLEASSIGNMENT")
   (pprint subtree)
-  (let [varName (second (second (third subtree)))]
+  (let [varName (second (second (third subtree)))
+        varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
     (println "varName:" varName)
-    (let [varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
-      (println "varValue:" varValue)
-      (setValue varName varValue)
-      {(keyword varName) (checkTable varName)})))
+    (println "varValue:" varValue)
+    (setValue varName varValue)
+    {(keyword varName) (checkTable varName)}))
 
 (defn MultipleAssignment [subtree scope]
   (println "MULTIPLEASSIGNMENT")
-  (let [varNames (second (second (third subtree)))] 
-    (let [varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)])))
+  (let [varNames (second (second (third subtree)))
+        varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)]))
       ;(let [i 0] (take (count varNames)
                        ;(iterate (inc i (setValue (nth varName i) (nth varValues i)))))))))
     ;{(keyword varName) (checkTable varName)}))
@@ -176,15 +176,15 @@
     
     ; Expression0/1 (Term ADD Expression/Term SUB Expression)
     (= (count subtree) 4)
-    ((let [term (callByLabel (first (second subtree)) (second subtree) scope)]
-       (let [expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-         (cond
+    (let [term (callByLabel (first (second subtree)) (second subtree) scope)
+          expression (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+      (cond
            
-	         (= :ADD (first (third subtree)))
-	         (+ term expression)
+        (= :ADD (first (third subtree)))
+        (+ term expression)
 	
-	         (= :SUB (first (third subtree)))
-	         (- term expression)))))
+        (= :SUB (first (third subtree)))
+        (- term expression)))
       
     ; Expression2 (Term)
     :default
@@ -196,15 +196,15 @@
     
     ; Term0/1 (Factor MULT Term/Factor DIV Term)
     (= (count subtree) 4)
-    ((let [factor (callByLabel (first (second subtree)) (second subtree) scope)]
-       (let [term (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-	     (cond
+    (let [factor (callByLabel (first (second subtree)) (second subtree) scope)
+          term (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+      (cond
         
-			     (= :MULT (first (third subtree)))
-           (* factor term)
+        (= :MULT (first (third subtree)))
+        (* factor term)
            
-           (= :DIV (first (third subtree)))
-           (double (/ factor term))))))
+        (= :DIV (first (third subtree)))
+        (double (/ factor term))))
       
     ; Term2 (Factor)
     :default

@@ -1,2 +1,2 @@
-cmdhistory=["(foo 4)" "exit" "(exit)" "(System/exit 0)" "(. System exit 0)" "(+ 1 4 5)" "(-main)" "(Num 3 4)" "(Num)" "(quirkParseTree)" "(println quirkParseTree)"]
+cmdhistory=["(foo 4)" "exit" "(exit)" "(System/exit 0)" "(. System exit 0)" "(+ 1 4 5)" "(-main)" "(Num 3 4)" "(Num)" "(quirkParseTree)" "(println quirkParseTree)" "(-main testFile.q)" "(-main \\"testFile.q\\")" "(-main \\"var x \= 5 + 10 print x\\")"]
 eclipse.preferences.version=1
