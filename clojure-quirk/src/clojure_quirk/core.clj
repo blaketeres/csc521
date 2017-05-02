@@ -3,15 +3,15 @@
   (:require [instaparse.core :as insta])
   (:use [clojure.pprint]))
 
-(def symbolTable (atom {}))
+(def globalTable (atom {}))
 
-(defn setValue [varname value]
+(defn setValue [symbolTable varname value]
   (if value
     (swap! symbolTable merge
            {(keyword varname) value})) 
   [])
 
-(defn checkTable [varitem]
+(defn checkTable [symbolTable varitem]
   (let [variable (keyword varitem)]
     (if (contains? @symbolTable variable)
       (get @symbolTable variable) 
@@ -53,7 +53,7 @@
   (apply (ns-resolve 'clojure-quirk.core (symbol (name label))) args))
 
 (defn interpretQuirk [subtree]
-  (callByLabel (first subtree) subtree symbolTable))
+  (callByLabel (first subtree) subtree globalTable))
 
 (defn Program [subtree scope]
   (println "PROGRAM")
@@ -79,7 +79,7 @@
   (let [funcName (second (second (third subtree)))
         funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))
         funcBody (seventh subtree)]
-        (setValue funcName [funcParams funcBody])))
+        (setValue scope funcName [funcParams funcBody])))
 
 (defn FunctionParams [subtree scope]
   (println "FUNCTIONPARAMS")
@@ -121,16 +121,15 @@
         varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
     (println "varName:" varName)
     (println "varValue:" varValue)
-    (setValue varName varValue)
-    {(keyword varName) (checkTable varName)}))
+    (setValue scope varName varValue)))
 
 (defn MultipleAssignment [subtree scope]
   (println "MULTIPLEASSIGNMENT")
   (let [varNames (second (second (third subtree)))
         varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)]))
       ;(let [i 0] (take (count varNames)
-                       ;(iterate (inc i (setValue (nth varName i) (nth varValues i)))))))))
-    ;{(keyword varName) (checkTable varName)}))
+                       ;(iterate (inc i (setValue scope (nth varName i) (nth varValues i)))))))))
+    ;{(keyword varName) (checkTable scope varName)}))
 
 (defn Print [subtree scope]
   (println "PRINT")
@@ -156,8 +155,8 @@
     
     ; ParameterList0 (Parameter COMMA ParameterList)
     (= (count subtree) 4)
-    (into [] (concat (callByLabel (first (second subtree)) (second subtree) scope)
-                     (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
+    (into [] (list (callByLabel (first (second subtree)) (second subtree) scope)
+                       (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
     
     ; ParameterList1 (Parameter)
     :default
@@ -248,21 +247,36 @@
 
 (defn FunctionCall [subtree scope]
   (println "FUNCTIONCALL")
-  (pprint subtree)
+  (def newScope (atom {}))
   (cond
     
     ; FunctionCall0 (Name LPAREN FunctionCallParams COLON Numb)
     (= (count subtree) 6)
-    ((let [funcName (second (second (second subtree)))]
-       (println "funcName: " funcName)
-       (println (count (checkTable funcName)))
-       (let [funcBody (checkTable funcName)]
-         (println "hehe:")
-         (pprint funcBody))))
-         
+    (let [funcName (second (second (second subtree)))
+          funcCallParams (callByLabel (first (fourth subtree)) (fourth subtree) scope)
+          numParamsRequired (count (first (checkTable scope funcName)))
+          funcBody (assoc (checkTable scope funcName) 0 funcCallParams)
+          funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))]
+      (println "funcName: " funcName)
+      (println "funcCallParams:" funcCallParams)
+      (println "funcReturnIndex:" funcReturnIndex)
+      (println "numParamsRequired: " numParamsRequired))
     
     :default
-    []))
+    (let [funcName (second (second (second subtree)))
+          funcCallParams (callByLabel (first (fourth subtree)) (fourth subtree) scope)
+          numParamsRequired (count (first (checkTable scope funcName)))
+          funcBody (checkTable scope funcName)
+          funcParamVars (first funcBody)]
+      (doseq [x (range numParamsRequired)]
+        (println 5))
+      (pprint @newScope)
+      (println "funcName: " funcName)
+      (println "funcParamVars: " funcParamVars)
+      (println "funcCallParams: " funcCallParams)
+      (println "numParamsRequired: " numParamsRequired)
+      ;(pprint funcBody)
+      )))
 
 (defn FunctionCallParams [subtree scope]
   (println "FUNCTIONCALLPARAMS")
@@ -294,18 +308,18 @@
     
     ; Name0 (IDENT)
     (= :IDENT (first (second subtree)))
-    (checkTable (second (second subtree)))
+    (checkTable scope (second (second subtree)))
     
     :default
     (cond
       
       ; Name1 (SUB IDENT)
       (= :SUB (first (second subtree)))
-      (- (double (checkTable (second (third subtree)))))
+      (- (double (checkTable scope (second (third subtree)))))
       
       ; Name2 (ADD IDENT)
       (= :ADD (first (second subtree)))
-      (double (checkTable (second (third subtree)))))))
+      (double (checkTable scope (second (third subtree)))))))
 
 (defn Numb [subtree scope]
   (println "NUMBER")
