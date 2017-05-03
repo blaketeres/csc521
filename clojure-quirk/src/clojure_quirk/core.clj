@@ -247,36 +247,51 @@
 
 (defn FunctionCall [subtree scope]
   (println "FUNCTIONCALL")
-  (def newScope (atom {}))
+  (def funcScope (atom {}))
+  (pprint @scope)
   (cond
     
     ; FunctionCall0 (Name LPAREN FunctionCallParams COLON Numb)
     (= (count subtree) 6)
     (let [funcName (second (second (second subtree)))
-          funcCallParams (callByLabel (first (fourth subtree)) (fourth subtree) scope)
+          funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
           numParamsRequired (count (first (checkTable scope funcName)))
-          funcBody (assoc (checkTable scope funcName) 0 funcCallParams)
+          funcBody (checkTable scope funcName)
+          funcParamVars (first funcBody)
           funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))]
+      (if (not= (count funcCallParams) (count funcParamVars))
+        (let [errorMessage (str "Function call " funcName " has wrong number of arguments")]
+          (throw (Exception. errorMessage))))
+      (loop [i 0]
+        (when (< i numParamsRequired)
+          (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
+          (recur (inc i))))
       (println "funcName: " funcName)
       (println "funcCallParams:" funcCallParams)
+      (println "funcParamVars: " funcParamVars)
       (println "funcReturnIndex:" funcReturnIndex)
-      (println "numParamsRequired: " numParamsRequired))
+      (println "numParamsRequired: " numParamsRequired)
+      (callByLabel (first(second (get @scope (keyword funcName)))) (second (get @scope (keyword funcName))) funcScope))
     
     :default
     (let [funcName (second (second (second subtree)))
-          funcCallParams (callByLabel (first (fourth subtree)) (fourth subtree) scope)
+          funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
           numParamsRequired (count (first (checkTable scope funcName)))
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)]
-      (doseq [x (range numParamsRequired)]
-        (println 5))
-      (pprint @newScope)
+      (if (not= (count funcCallParams) (count funcParamVars))
+        (let [errorMessage (str "Function call " funcName " has wrong number of arguments")]
+          (throw (Exception. errorMessage))))
+      (loop [i 0]
+        (when (< i numParamsRequired)
+          (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
+          (recur (inc i))))
+      
       (println "funcName: " funcName)
+      (println "funcCallParams:" funcCallParams)
       (println "funcParamVars: " funcParamVars)
-      (println "funcCallParams: " funcCallParams)
       (println "numParamsRequired: " numParamsRequired)
-      ;(pprint funcBody)
-      )))
+      (callByLabel (first(second (get @scope (keyword funcName)))) (second (get @scope (keyword funcName))) funcScope))))
 
 (defn FunctionCallParams [subtree scope]
   (println "FUNCTIONCALLPARAMS")
