@@ -1,5 +1,7 @@
 # clojure-quirk
 
+A straightforward interpreter for the quirk language.
+
 ## How To Run
 
 If using leiningen, you can download the entire project folder and run the program without any compilation.
