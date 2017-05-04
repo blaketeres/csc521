@@ -16,7 +16,11 @@ If you would like to run the compiled file, you can run the program with:
 
 Running the compiled file works a bit more quickly, but either will yield the same results.
 
-My interpreter supports dynmaic rebinding of variables and functions, as well as nested function declarations.
+My interpreter supports dynmaic rebinding of variables and functions, as well as nested function declarations. The atom {} structure and access methods used were inspired by the interpreter found in the link below:
+
+https://github.com/javazquez/arnoldclj_interpreter/blob/master/src/arnoldclj_s/interpreter.clj
+
+I modified its structure to work locally upon whatever scope is specified, rather than on a global table. This allows scope to be limited to the confines of a function's braces.
 
 My interpreter declares a valid and invalid way to use multiple assignments on function calls. Use this function as an example:
 ```
@@ -38,7 +42,5 @@ var b = myFunc():0
 var a, b, c, d = myFunc()   // out of range
 var a, b, c = myFunc():1    // multiple assignments of one variable
 ```
-
-
 
 
