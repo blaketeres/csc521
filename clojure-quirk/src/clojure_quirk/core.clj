@@ -223,27 +223,28 @@
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)
           funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))
-          errorMessage (str "Function call " funcName " has wrong number of arguments")]
-      (println (count funcCallParams) (count funcParamVars))
+          errorMessage1 (str "Call to function " funcName " has wrong number of arguments")
+          errorMessage2 (str "Call to function " funcName " tries to return index out of range")]
       (if (not= (count funcCallParams) (count funcParamVars))
-        (throw (Exception. errorMessage)))
+        (throw (Exception. errorMessage1)))
       (loop [i 0]
         (when (< i numParamsRequired)
           (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
           (recur (inc i))))
       (setValue funcScope funcName (checkTable scope funcName))
+      (if (nil? (get (into [] (flatten (callByLabel (first(second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))) funcReturnIndex))
+        (throw (Exception. errorMessage2)))
       (get (into [] (flatten (callByLabel (first(second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))) funcReturnIndex))
     
     ; FunctionCall1 (Name LPAREN FunctionCallParams)
     :default
     (let [funcScope (atom {})
           funcName (second (second (second subtree)))
-          funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
+          funcCallParams (into [] (flatten (conj [] (callByLabel (first (fourth subtree)) (fourth subtree) scope))))
           numParamsRequired (count (first (checkTable scope funcName)))
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)
-          errorMessage (str "Function call" funcName "has wrong number of arguments")]
-      (println (count funcCallParams) (count funcParamVars))
+          errorMessage (str "Call to function " funcName " has wrong number of arguments")]
       (if (not= (count funcCallParams) (count funcParamVars))
         (throw (Exception. errorMessage)))
       (loop [i 0]
