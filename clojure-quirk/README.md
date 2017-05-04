@@ -33,7 +33,7 @@ print x
 ```
 is valid, and will yield 7 and 42 consecutively.
 
-The atom {} structure and access methods used were inspired by the interpreter found in the link below:
+The (atom {}) scope and methods to access scope used were inspired by the interpreter found in the link below:
 
 https://github.com/javazquez/arnoldclj_interpreter/blob/master/src/arnoldclj_s/interpreter.clj
 
@@ -59,5 +59,4 @@ var b = myFunc():0
 var a, b, c, d = myFunc()   // Assignment out of range of function return values
 var a, b, c = myFunc():1    // Multiple assignments to one variable
 ```
-s
 
