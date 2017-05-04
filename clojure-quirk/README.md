@@ -10,9 +10,12 @@ You can run the program with:
 
 `lein run < testQuirkFile.q`
 
-If you would like to run the compiled file, you can run the program with:
+If you would like to run the compiled file, you can compile/run the program with two commands:
 
-`java -jar target/clojure-quirk-0.1.0-SNAPSHOT-standalone.jar < testFile.q`
+```
+lein uberjar
+java -jar target/clojure-quirk-0.1.0-SNAPSHOT-standalone.jar < testFile.q
+```
 
 Running the compiled file works a bit more quickly, but either will yield the same results.
 
@@ -39,8 +42,8 @@ var b = myFunc():0
 ### Invalid
 
 ```
-var a, b, c, d = myFunc()   // out of range
-var a, b, c = myFunc():1    // multiple assignments of one variable
+var a, b, c, d = myFunc()   // Assignment out of range of function return values
+var a, b, c = myFunc():1    // Multiple assignments to one variable
 ```
 
 
