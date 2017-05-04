@@ -46,7 +46,7 @@
     
     ; Program0 (<Statement> <Program>)
     (= (count subtree) 3)
-    ((callByLabel (first (second subtree)) (second subtree) scope)
+    (do (callByLabel (first (second subtree)) (second subtree) scope)
       (callByLabel (first (third subtree)) (third subtree) scope))
   
     ; Program1 (<Statement>)
@@ -80,7 +80,7 @@
     
     ; FunctionBody0
     (= :Program (first (second subtree)))
-    ((callByLabel (first (second subtree)) (second subtree) scope)
+    (do (callByLabel (first (second subtree)) (second subtree) scope)
 		  (callByLabel (first (third subtree)) (third subtree) scope))
     
     ; FunctionBody1
@@ -99,11 +99,8 @@
     (setValue scope varName varValue)))
 
 (defn MultipleAssignment [subtree scope]
-  (pprint subtree)
   (let [varNames (into [] (callByLabel (first (third subtree)) (third subtree) scope))
         varValues (into [] (flatten (conj [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))))]
-    (println "varNames: " varNames)
-    (println "varValues: " varValues)
     (loop [i 0]
       (when (< i (count varNames))
         (setValue scope (str (get varNames i)) (get varValues i))
@@ -199,7 +196,7 @@
    
     ; Factor2 (FunctionCall)
     (= :FunctionCall (first (second subtree)))
-    (callByLabel (first (second subtree)))
+    (callByLabel (first (second subtree)) (second subtree) scope)
    
     :default
     (cond
@@ -221,12 +218,13 @@
     (= (count subtree) 6)
     (let [funcScope (atom {})
           funcName (second (second (second subtree)))
-          funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
+          funcCallParams (into [] (flatten (conj [] (callByLabel (first (fourth subtree)) (fourth subtree) scope))))
           numParamsRequired (count (first (checkTable scope funcName)))
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)
           funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))
-          errorMessage (str "Function call" funcName "has wrong number of arguments")]
+          errorMessage (str "Function call " funcName " has wrong number of arguments")]
+      (println (count funcCallParams) (count funcParamVars))
       (if (not= (count funcCallParams) (count funcParamVars))
         (throw (Exception. errorMessage)))
       (loop [i 0]
@@ -245,6 +243,7 @@
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)
           errorMessage (str "Function call" funcName "has wrong number of arguments")]
+      (println (count funcCallParams) (count funcParamVars))
       (if (not= (count funcCallParams) (count funcParamVars))
         (throw (Exception. errorMessage)))
       (loop [i 0]
@@ -252,7 +251,7 @@
           (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
           (recur (inc i))))
       (setValue funcScope funcName (checkTable scope funcName))
-      (callByLabel (first(second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))))
+      (callByLabel (first (second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))))
 
 (defn FunctionCallParams [subtree scope]
   (cond
