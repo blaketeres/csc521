@@ -21,7 +21,19 @@ java -jar target/clojure-quirk-0.1.0-SNAPSHOT-standalone.jar < testFile.q
 
 Running the compiled file works a bit more quickly, but either will yield the same results.
 
-My interpreter supports dynmaic rebinding of variables and functions, as well as nested function declarations. The atom {} structure and access methods used were inspired by the interpreter found in the link below:
+## Other Things
+
+My interpreter supports dynamic rebinding of variables and functions, as well as nested function declarations. This means that something like this:
+
+```
+var x = 7
+print x
+var x = 142
+print x
+```
+is valid, and will yield 7 and 42 consecutively.
+
+The atom {} structure and access methods used were inspired by the interpreter found in the link below:
 
 https://github.com/javazquez/arnoldclj_interpreter/blob/master/src/arnoldclj_s/interpreter.clj
 
@@ -47,5 +59,5 @@ var b = myFunc():0
 var a, b, c, d = myFunc()   // Assignment out of range of function return values
 var a, b, c = myFunc():1    // Multiple assignments to one variable
 ```
-
+s
 
