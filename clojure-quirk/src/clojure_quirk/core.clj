@@ -3,15 +3,15 @@
   (:require [instaparse.core :as insta])
   (:use [clojure.pprint]))
 
-(def globalTable (atom {}))
-
 (defn setValue [symbolTable varname value]
+  "Function used to bind a name in scope"
   (if value
     (swap! symbolTable merge
            {(keyword varname) value})) 
   [])
 
 (defn checkTable [symbolTable varitem]
+  "Function used to look up a name in scope"
   (let [variable (keyword varitem)]
     (if (contains? @symbolTable variable)
       (get @symbolTable variable) 
@@ -23,23 +23,14 @@
 (defn fifth [aList] (nth aList 4))
 (defn sixth [aList] (nth aList 5))
 (defn seventh [aList] (nth aList 6))
-(defn eighth [aList] (nth aList 7))
 
-;this returns a map with local variable bindings when calling a function
-(defn varBindLoop [paramList valueList]
-  (if (= 1 (count paramList))
-    (assoc {} (first paramList) (first valueList))
-    (merge (assoc {} (first paramList) (first valueList))
-      (varBindLoop
-        (rest paramList)
-        (rest valueList)))))
-
-; call function by its label
 (defn callByLabel [label & args]
+  "Calls a function by its label"
   (apply (ns-resolve 'clojure-quirk.core (symbol (name label))) args))
 
 (defn interpretQuirk [subtree]
-  (callByLabel (first subtree) subtree globalTable))
+  "Begins the parse tree traversal"
+  (callByLabel (first subtree) subtree (atom {})))
 
 (defn Program [subtree scope]
   (cond
@@ -56,9 +47,11 @@
 (defn Statement [subtree scope]
   
   ; Statement0/1/2 (FunctionDeclaration | Assignment | Print)
-	(callByLabel (first (second subtree)) (second subtree) scope))
+  (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn FunctionDeclaration [subtree scope]
+  
+  ; FunctionDeclaration (FUNCTION Name LPAREN FunctionParams LBRACE FunctionBody RBRACE)
   (let [funcName (second (second (third subtree)))
         funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))
         funcBody (seventh subtree)]
@@ -78,35 +71,48 @@
 (defn FunctionBody [subtree scope]
   (cond
     
-    ; FunctionBody0
+    ; FunctionBody0 (Program Return)
     (= :Program (first (second subtree)))
     (do (callByLabel (first (second subtree)) (second subtree) scope)
 		  (callByLabel (first (third subtree)) (third subtree) scope))
     
-    ; FunctionBody1
+    ; FunctionBody1 (Return)
     :default
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Return [subtree scope]
+  
+  ; Return (RETURN ParameterList)
   (callByLabel (first (third subtree)) (third subtree) scope))
 
 (defn Assignment [subtree scope]
+  
+  ; Assignment1/0 (SingleAssignment | MultipleAssignment)
   (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn SingleAssignment [subtree scope]
+  
+  ; SingleAssignment (VAR Name ASSIGN Expression)
   (let [varName (second (second (third subtree)))
         varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
     (setValue scope varName varValue)))
 
 (defn MultipleAssignment [subtree scope]
+  
+  ; MultipleAssignment (VAR NameList ASSIGN FunctionCall)
   (let [varNames (into [] (callByLabel (first (third subtree)) (third subtree) scope))
-        varValues (into [] (flatten (conj [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))))]
+        varValues (into [] (flatten (conj [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))))
+        errorMessage1 (str "Too many variables for assignment.")]
+    (if (> (count varNames) (count varValues))
+      (throw (Exception. errorMessage1)))
     (loop [i 0]
       (when (< i (count varNames))
         (setValue scope (str (get varNames i)) (get varValues i))
         (recur (inc i))))))
 
 (defn Print [subtree scope]
+  
+  ; Print (PRINT Expression)
   (println (callByLabel (first (third subtree)) (third subtree) scope)))
 
 (defn NameList [subtree scope]
@@ -156,7 +162,11 @@
       
     ; Expression2 (Term)
     :default
-    (callByLabel (first (second subtree)) (second subtree) scope)))
+    (let [expression (callByLabel (first (second subtree)) (second subtree) scope)
+          errorMessage (str "Expression " expression " does not result to a value.")]
+      (if-not (instance? Number expression)
+        (throw (Exception. errorMessage))
+        expression))))
 
 (defn Term [subtree scope]
   (cond
