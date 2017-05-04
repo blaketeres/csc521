@@ -17,20 +17,6 @@
       (get @symbolTable variable) 
       varitem)))
 
-(defn exp
-  "exponent of x^n (int n only), with tail recursion and O(logn)"
-   [x n]
-   (if (< n 0)
-     (/ 1 (exp x (- n)))
-     (loop [acc 1
-            base x
-            pow n]
-       (if (= pow 0)
-         acc                           
-         (if (even? pow)
-           (recur acc (* base base) (/ pow 2))
-           (recur  (* acc base) base (dec pow)))))))
-
 ; easy access functions
 (defn third [aList] (nth aList 2))
 (defn fourth [aList] (nth aList 3))
@@ -56,33 +42,29 @@
   (callByLabel (first subtree) subtree globalTable))
 
 (defn Program [subtree scope]
-  (println "PROGRAM")
   (cond
     
-		; Program0 (<Statement> <Program>)
-		(= (count subtree) 3)
-		((callByLabel (first (second subtree)) (second subtree) scope)
-		  (callByLabel (first (third subtree)) (third subtree) scope))
+    ; Program0 (<Statement> <Program>)
+    (= (count subtree) 3)
+    ((callByLabel (first (second subtree)) (second subtree) scope)
+      (callByLabel (first (third subtree)) (third subtree) scope))
   
-	  ; Program1 (<Statement>)
-	  :default
-	  (callByLabel (first (second subtree)) (second subtree) scope)))
+    ; Program1 (<Statement>)
+    :default
+    (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Statement [subtree scope]
-  (println "STATEMENT")
   
   ; Statement0/1/2 (FunctionDeclaration | Assignment | Print)
 	(callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn FunctionDeclaration [subtree scope]
-  (println "FUNCTIONDECLARATION")
   (let [funcName (second (second (third subtree)))
         funcParams (into [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))
         funcBody (seventh subtree)]
         (setValue scope funcName [funcParams funcBody])))
 
 (defn FunctionParams [subtree scope]
-  (println "FUNCTIONPARAMS")
   (cond
     
     ; FunctionParams0 (NameList RPAREN)
@@ -94,7 +76,6 @@
     []))
 
 (defn FunctionBody [subtree scope]
-  (println "FUNCTIONBODY")
   (cond
     
     ; FunctionBody0
@@ -107,37 +88,31 @@
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Return [subtree scope]
-  (println "RETURN")
   (callByLabel (first (third subtree)) (third subtree) scope))
 
 (defn Assignment [subtree scope]
-  (println "ASSIGNMENT")
   (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn SingleAssignment [subtree scope]
-  (println "SINGLEASSIGNMENT")
-  (pprint subtree)
   (let [varName (second (second (third subtree)))
         varValue (callByLabel (first (fifth subtree)) (fifth subtree) scope)]
-    (println "varName:" varName)
-    (println "varValue:" varValue)
     (setValue scope varName varValue)))
 
 (defn MultipleAssignment [subtree scope]
-  (println "MULTIPLEASSIGNMENT")
-  (let [varNames (second (second (third subtree)))
-        varValues (callByLabel (first (fifth subtree)) (fifth subtree) scope)]))
-      ;(let [i 0] (take (count varNames)
-                       ;(iterate (inc i (setValue scope (nth varName i) (nth varValues i)))))))))
-    ;{(keyword varName) (checkTable scope varName)}))
+  (pprint subtree)
+  (let [varNames (into [] (callByLabel (first (third subtree)) (third subtree) scope))
+        varValues (into [] (flatten (conj [] (callByLabel (first (fifth subtree)) (fifth subtree) scope))))]
+    (println "varNames: " varNames)
+    (println "varValues: " varValues)
+    (loop [i 0]
+      (when (< i (count varNames))
+        (setValue scope (str (get varNames i)) (get varValues i))
+        (recur (inc i))))))
 
 (defn Print [subtree scope]
-  (println "PRINT")
-  (let [valToPrint (callByLabel (first (third subtree)) (third subtree) scope)]
-    (println "valToPrint: " valToPrint)))
+  (println (callByLabel (first (third subtree)) (third subtree) scope)))
 
 (defn NameList [subtree scope]
-  (println "NAMELIST")
   (cond
     
     ; NameList0 (Name COMMA NameList)
@@ -150,27 +125,24 @@
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn ParameterList [subtree scope]
-  (println "PARAMETERLIST")
   (cond
     
     ; ParameterList0 (Parameter COMMA ParameterList)
     (= (count subtree) 4)
     (into [] (list (callByLabel (first (second subtree)) (second subtree) scope)
-                       (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
+                   (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
     
     ; ParameterList1 (Parameter)
     :default
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Parameter [subtree scope]
-  (println "PARAMETER")
     
   ; Parameter0/1 (Expression/Name)
   (= :Expression 1)
   (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn Expression [subtree scope]
-  (println "EXPRESSION")
   (cond
     
     ; Expression0/1 (Term ADD Expression/Term SUB Expression)
@@ -190,7 +162,6 @@
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Term [subtree scope]
-  (println "TERM")
   (cond
     
     ; Term0/1 (Factor MULT Term/Factor DIV Term)
@@ -210,91 +181,80 @@
     (callByLabel (first (second subtree)) (second subtree) scope)))
 
 (defn Factor [subtree scope]
-  (println "FACTOR")
+  ;(pprint subtree)
   (cond
 
     (= :SubExpression (first (second subtree)))
-    (let [subExpression (callByLabel (first (second subtree)) (second subtree) scope)]
-      (cond
+    (cond
       
-        ; Factor0 (SubExpression EXP Factor)
-        (= (count subtree) 4)
-        (let [factor (callByLabel (first (second (second (third (second subtree)))))
-                                         (second (second (third (second subtree)))) scope)]
-          (exp subExpression factor))
+      ; Factor0 (SubExpression EXP Factor)
+      (= (count subtree) 4)
+      (let [subExpression (callByLabel (first (second subtree)) (second subtree) scope)
+            factor (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+      (Math/pow subExpression factor))
     
-        ; Factor1 (SubExpression)
-        :default
-        subExpression))
+      ; Factor1 (SubExpression)
+      :default
+      (callByLabel (first (second subtree)) (second subtree) scope))
    
     ; Factor2 (FunctionCall)
     (= :FunctionCall (first (second subtree)))
     (callByLabel (first (second subtree)))
    
     :default
-    (let [value (callByLabel (first (second subtree)) (second subtree) scope)]
-      (cond
+    (cond
        
-        ; Factor3 (Value EXP Factor)
-        (= (count subtree) 4)
-        (let [factor (callByLabel (first (second (second (third (second subtree)))))
-                                  (second (second (third (second subtree)))) scope)]
-          (exp value factor))
+      ; Factor3 (Value EXP Factor)
+      (= (count subtree) 4)
+      (let [value (callByLabel (first (second subtree)) (second subtree) scope)
+            factor (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
+      (Math/pow value factor))
        
-        ; Factor4 (Value)
-        :default
-        value))))
+      ; Factor4 (Value)
+      :default
+      (callByLabel (first (second subtree)) (second subtree) scope))))
 
 (defn FunctionCall [subtree scope]
-  (println "FUNCTIONCALL")
-  (def funcScope (atom {}))
-  (pprint @scope)
   (cond
     
     ; FunctionCall0 (Name LPAREN FunctionCallParams COLON Numb)
     (= (count subtree) 6)
-    (let [funcName (second (second (second subtree)))
+    (let [funcScope (atom {})
+          funcName (second (second (second subtree)))
           funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
           numParamsRequired (count (first (checkTable scope funcName)))
           funcBody (checkTable scope funcName)
           funcParamVars (first funcBody)
-          funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))]
+          funcReturnIndex (int (callByLabel (first (sixth subtree)) (sixth subtree) scope))
+          errorMessage (str "Function call" funcName "has wrong number of arguments")]
       (if (not= (count funcCallParams) (count funcParamVars))
-        (let [errorMessage (str "Function call " funcName " has wrong number of arguments")]
-          (throw (Exception. errorMessage))))
+        (throw (Exception. errorMessage)))
       (loop [i 0]
         (when (< i numParamsRequired)
           (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
           (recur (inc i))))
-      (println "funcName: " funcName)
-      (println "funcCallParams:" funcCallParams)
-      (println "funcParamVars: " funcParamVars)
-      (println "funcReturnIndex:" funcReturnIndex)
-      (println "numParamsRequired: " numParamsRequired)
-      (callByLabel (first(second (get @scope (keyword funcName)))) (second (get @scope (keyword funcName))) funcScope))
+      (setValue funcScope funcName (checkTable scope funcName))
+      (get (into [] (flatten (callByLabel (first(second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))) funcReturnIndex))
     
+    ; FunctionCall1 (Name LPAREN FunctionCallParams)
     :default
-    (let [funcName (second (second (second subtree)))
+    (let [funcScope (atom {})
+          funcName (second (second (second subtree)))
           funcCallParams (into [] (flatten (callByLabel (first (fourth subtree)) (fourth subtree) scope)))
           numParamsRequired (count (first (checkTable scope funcName)))
           funcBody (checkTable scope funcName)
-          funcParamVars (first funcBody)]
+          funcParamVars (first funcBody)
+          errorMessage (str "Function call" funcName "has wrong number of arguments")]
       (if (not= (count funcCallParams) (count funcParamVars))
-        (let [errorMessage (str "Function call " funcName " has wrong number of arguments")]
-          (throw (Exception. errorMessage))))
+        (throw (Exception. errorMessage)))
       (loop [i 0]
         (when (< i numParamsRequired)
           (setValue funcScope (str (get funcParamVars i)) (get funcCallParams i))
           (recur (inc i))))
-      
-      (println "funcName: " funcName)
-      (println "funcCallParams:" funcCallParams)
-      (println "funcParamVars: " funcParamVars)
-      (println "numParamsRequired: " numParamsRequired)
-      (callByLabel (first(second (get @scope (keyword funcName)))) (second (get @scope (keyword funcName))) funcScope))))
+      (setValue funcScope funcName (checkTable scope funcName))
+      (callByLabel (first(second (get @funcScope (keyword funcName)))) (second (get @funcScope (keyword funcName))) funcScope))))
 
 (defn FunctionCallParams [subtree scope]
-  (println "FUNCTIONCALLPARAMS")
   (cond
     
     ; FunctionCallParams0 (ParameterList RPAREN)
@@ -306,19 +266,16 @@
     []))
 
 (defn SubExpression [subtree scope]
-  (println "SUBEXPRESSION")
   
   ; SubExpression0 (LPAREN Expression RPAREN)
   (callByLabel (first (third subtree)) (third subtree) scope))
 
 (defn Value [subtree scope]
-  (println "VALUE")
     
   ; Value0/1 (Name/Number)
   (callByLabel (first (second subtree)) (second subtree) scope))
 
 (defn Name [subtree scope]
-  (println "NAME")
   (cond
     
     ; Name0 (IDENT)
@@ -337,7 +294,6 @@
       (double (checkTable scope (second (third subtree)))))))
 
 (defn Numb [subtree scope]
-  (println "NUMBER")
   (cond
     
     ; Number0 (NUMBER)
