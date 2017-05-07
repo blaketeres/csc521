@@ -198,7 +198,7 @@
       (= (count subtree) 4)
       (let [subExpression (callByLabel (first (second subtree)) (second subtree) scope)
             factor (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-      (Math/pow subExpression factor))
+        (Math/pow subExpression factor))
     
       ; Factor1 (SubExpression)
       :default
@@ -215,7 +215,7 @@
       (= (count subtree) 4)
       (let [value (callByLabel (first (second subtree)) (second subtree) scope)
             factor (callByLabel (first (fourth subtree)) (fourth subtree) scope)]
-      (Math/pow value factor))
+        (Math/pow value factor))
        
       ; Factor4 (Value)
       :default
