@@ -3,6 +3,7 @@ import pprint
 import json
 import ast
 
+pp = pprint.PrettyPrinter(depth=6)
 
 def lookupInScopeStack(name, scope):
     '''Returns values (including declared functions!) from the scope.
@@ -70,8 +71,6 @@ def Program1(parent, scope):
     callFunction(parent[1][0], parent[1], scope)
 
 # <Statement> -> <FunctionDeclaration> | <Assignment> | <Print>
-
-
 def Statement0(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
@@ -84,8 +83,6 @@ def Statement2(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <FunctionDeclaration> -> FUNCTION <Name> LPAREN <FunctionParams> LBRACE <FunctionBody> RBRACE
-
-
 def FunctionDeclaration(parent, scope):
     # Get the function name
     functionName = getName(parent[2][1])
@@ -104,10 +101,8 @@ def FunctionDeclaration(parent, scope):
     scope[functionName] = [functionParams, functionBody]
 
 # <FunctionParams> -> RPAREN | <NameList> RPAREN
-
-
 def FunctionParams0(parent, scope):
-    return
+    return []
 
 
 def FunctionParams1(parent, scope):
@@ -128,14 +123,10 @@ def FunctionBody1(parent, scope):
     return xReturn
 
 # <Return> -> RETURN <ParameterList>
-
-
 def Return(parent, scope):
     return callFunction(parent[2][0], parent[2], scope)
 
 # <Assignment> -> <SingleAssignment> | <MultipleAssignment>
-
-
 def Assignment0(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
@@ -144,17 +135,15 @@ def Assignment1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <SingleAssignment> -> VAR <Name> ASSIGN <Expression>
-
-
 def SingleAssignment(parent, scope):
     name = callFunction(parent[2][0], parent[2], scope)[-1]
-    # checks is variable has already been declared
-    if name in scope:
-        if lookupInScopeStack(name, scope) == scope[name]:
-            x = str(name)
-            errorMessage = "Variable " + x + " cannot be redefined"
-            raise Exception(errorMessage)
 
+    # checks is variable has already been declared
+    #if name in scope:
+    #    if lookupInScopeStack(name, scope) == scope[name]:
+    #        x = str(name)
+    #        errorMessage = "Variable " + x + " cannot be redefined"
+    #        raise Exception(errorMessage)
     expression = callFunction(parent[4][0], parent[4], scope)
     if isinstance(expression, list):
         scope[name] = expression[0]
@@ -163,8 +152,6 @@ def SingleAssignment(parent, scope):
     return
 
 # <MultipleAssignment> -> VAR <NameList> ASSIGN <FunctionCall>
-
-
 def MultipleAssignment(parent, scope):
     '''This function converts a nested list of paramaters
     to a single-depth list of function paramaters
@@ -185,10 +172,10 @@ def MultipleAssignment(parent, scope):
     Check to see if variable is already in scope
     and other various error checking
     '''
-    for i in range(len(nameList)):
-        if nameList[i] in scope.keys():
-            errorMessage = "Variable " + "'" + str(nameList[i]) + "'" " is already defined"
-            raiseException(errorMessage)
+    #for i in range(len(nameList)):
+    #    if nameList[i] in scope.keys():
+    #        errorMessage = "Variable " + "'" + str(nameList[i]) + "'" " is already defined"
+    #        raiseException(errorMessage)
     if len(nameList) > len(returnValues):
         raiseException("Invalid # of return values")
     if len(nameList) < len(returnValues):
@@ -198,8 +185,6 @@ def MultipleAssignment(parent, scope):
     return functionCall
 
 # <Print> -> PRINT <Expression>
-
-
 def Print(parent, scope):
     expression = callFunction(parent[2][0], parent[-1], scope)
     if expression == None:
@@ -214,8 +199,6 @@ def Print(parent, scope):
     return
 
 # <NameList> -> <Name> COMMA <NameList> | <Name>
-
-
 def NameList0(parent, scope):
     n1 = callFunction(parent[1][0], parent[1], scope)
     n2 = callFunction(parent[3][0], parent[3], scope)
@@ -226,8 +209,6 @@ def NameList1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <ParameterList> -> <Parameter> COMMA <ParameterList> | <Parameter>
-
-
 def ParameterList0(parent, scope):
     p1 = callFunction(parent[1][0], parent[1], scope)
     p2 = callFunction(parent[3][0], parent[3], scope)
@@ -238,8 +219,6 @@ def ParameterList1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <Parameter> -> <Expression> | <Name>
-
-
 def Parameter0(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
@@ -248,8 +227,6 @@ def Parameter1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <Expression> -> <Term> ADD <Expression> | <Term> SUB <Expression> | <Term>
-
-
 def Expression0(parent, scope):
     term = callFunction(parent[1][0], parent[1], scope)
     operator = parent[2]
@@ -269,8 +246,6 @@ def Expression1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <Term> -> <Factor> MULT <Term> | <Factor> DIV <Term> | <Factor>
-
-
 def Term0(parent, scope):
     factor = callFunction(parent[1][0], parent[1], scope)
     operator = parent[2]
@@ -290,8 +265,6 @@ def Term1(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <Factor> -> <SubExpression> EXP <Factor> | <SubExpression> | <FunctionCall> | <Value> EXP <Factor> | <Value>
-
-
 def Factor0(parent, scope):
     subExpression = callFunction(parent[1][0], parent[1], scope)
     factor = callFunction(parent[3][0], parent[3], scope)
@@ -316,8 +289,6 @@ def Factor4(parent, scope):
     return callFunction(parent[1][0], parent[1], scope)
 
 # <FunctionCall> -> <Name> LPAREN <FunctionCallParams> COLON <Number> | <Name> LPAREN <FunctionCallParams>
-
-
 def FunctionCall0(parent, scope):
     '''This function converts a nested list of paramaters
     to a single-depth list of function paramaters
@@ -351,7 +322,7 @@ def FunctionCall0(parent, scope):
     indexNumber = callFunction(parent[5][0], parent[5], scope)
 
     '''Creat New Scope'''
-    newScope = {}
+    newScope = scope
 
     '''Find number of required variables'''
     numVariables = 0
@@ -361,12 +332,13 @@ def FunctionCall0(parent, scope):
         numVariables += 1
     newScope[name] = scope[name]
     nestedReturnValues = callFunction(newScope[name][1][0], newScope[name][1], newScope)
+    print (nestedReturnValues)
     output = unNestList(nestedReturnValues, [])[indexNumber]
-    if not isinstance(output, list):
-        finalOutput = []
-        for i in range(numVariables):
-            finalOutput.append(output)
-        return finalOutput
+    #if not isinstance(output, list):
+    #    finalOutput = []
+    #    for i in range(numVariables):
+    #        finalOutput.append(output)
+    #    return finalOutput
     return output
 
 
@@ -380,7 +352,7 @@ def FunctionCall1(parent, scope):
         numRequiredParams = len(scope[name][0])
     if len(functionCallParams) != numRequiredParams:
         raiseException("Incorrect number of function paramaters")
-    newScope = {}
+    newScope = scope
     if scope[name][0] != None:
         for i, item in enumerate(scope[name][0]):
             variable = functionCallParams[i]
@@ -389,8 +361,6 @@ def FunctionCall1(parent, scope):
     return callFunction(newScope[name][1][0], newScope[name][1], newScope)
 
 # <FunctionCallParams> -> RPAREN | <ParameterList> RPAREN
-
-
 def FunctionCallParams0(parent, scope):
     return []
 
@@ -415,14 +385,10 @@ def FunctionCallParams1(parent, scope):
     return [params]
 
 # <SubExpression> -> LPAREN <Expression> RPAREN
-
-
 def SubExpression(parent, scope):
     return callFunction(parent[2][0], parent[2], scope)
 
 # <Value> -> <Name> | <Number>
-
-
 def Value0(parent, scope):
     value = callFunction(parent[1][0], parent[1], scope)
     if value[0] == None:
@@ -450,8 +416,6 @@ def Name1(parent, scope):
         return [lookupInScopeStack(name, scope), name]
 
 # <Number> -> NUMBER | SUB NUMBER | ADD NUMBER
-
-
 def Number0(parent, scope):
     return getNumber(parent[1])
 
